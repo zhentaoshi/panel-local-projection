@@ -83,17 +83,13 @@ IRF.FE <- data.frame(est = fit.FE$IRF,
 # HJ
 fit.HJ <- LP_panel(data, Y.name = Y.name, X.name = X.name,
                    H = H, lagY = lagY, method = "HJ")
-IRF.HJ <-  fit.HJ$IRF
-se.HJ <-  fit.HJ$se
-low.HJ = IRF.HJ - 1.96*se.HJ
-high.HJ = IRF.HJ + 1.96*se.HJ
 
 IRF.HJ <- data.frame(est = fit.HJ$IRF,
                      se = fit.HJ$se,
                      lower = fit.HJ$IRF  - 1.96*fit.HJ$se, 
                      upper = fit.HJ$IRF  - 1.96*fit.HJ$se)
 
-# print resuts ##########
+# print results ##########
 cat("estimated IRF by FE \n")
 print(IRF.FE)
 
