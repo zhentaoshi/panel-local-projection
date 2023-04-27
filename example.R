@@ -22,6 +22,7 @@ sigmamu = 1
 sigmaep = 1
 sigmachi = 1
 
+lagX = 1
 lagY = 0
 
 # Data initialization
@@ -73,7 +74,7 @@ X.name <- c("X")
 
 # FE
 fit.FE <- LP_panel(data, Y.name = Y.name, X.name = X.name,
-                   H = H, lagY = lagY, method = "FE")
+                   method = "FE", lagX = lagX, lagY = lagY, H = H)
 
 IRF.FE <- data.frame(est = fit.FE$IRF,
                      se = fit.FE$se,
@@ -82,7 +83,7 @@ IRF.FE <- data.frame(est = fit.FE$IRF,
 
 # HJ
 fit.HJ <- LP_panel(data, Y.name = Y.name, X.name = X.name,
-                   H = H, lagY = lagY, method = "HJ")
+                   method = "HJ", lagX = lagX, lagY = lagY, H = H)
 
 IRF.HJ <- data.frame(est = fit.HJ$IRF,
                      se = fit.HJ$se,
