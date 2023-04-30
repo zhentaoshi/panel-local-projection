@@ -28,6 +28,8 @@ lagY = 0
 
 # Data initialization
 
+set.seed(20230501)
+
 X=matrix(0,T0,N)
 Y=matrix(0,T0,N)
 mu=matrix(rnorm(N*T0,mean=0,sd=sigmamu),nrow=T0)
