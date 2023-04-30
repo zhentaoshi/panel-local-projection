@@ -13,29 +13,29 @@ LP_panel = function(data,
                     c.name = NULL,
                     id.name = NULL,
                     time.name = NULL,
-                    method = NULL,
+                    method = "HJ",
                     te = F,
                     lagX = NULL,
-                    lagY = NULL, 
-                    H ) {
+                    lagY = 1, 
+                    H = 5) {
   
   # INPUTS
   # data: A data frame, containing the panel data set.
-  # Y.name: Character. The dependent variable in the panel LP regression.
-  # X.name: Character. The shock variables in the panel LP regression.
-  # c.name: NULL or Character. The control variables in the panel LP regression. If NULL, the other columns of the panel data set (except id.name, time.name, Y.name, X.name) will be the control variables.
+  # Y.name: Character. The dependent variable.
+  # X.name: Character. The shock variables.
+  # c.name: NULL or Character. The control variables. If NULL, the other columns of the panel data set (except id.name, time.name, Y.name, X.name) are regarded the control variables.
   # id.name: NULL or Character. The column to identify the cross sectional units. If NULL, the first column of the panel data set will be the variable denoting the cross section.
-  # time.name: NULL or Character. The column to identify the time periods. If NULL, the first column of the panel data set will be the variable denoting the time section.
-  # method: Character. Type of method, either "HJ" (half-panel jackknife) or "FE" (conventional within-group estimation).
-  # te: Boolean. Is the time effect included in the model? TRUE or FALSE (default).
-  # lagX: NULL or Integer. The number of lagged shock variables included as regressors.
-  # lagY: NULL or Integer. The number of lagged dependent variables included as regressors.
-  # H: Integer. The maximum horizon for prediction.
+  # time.name: NULL or Character. The column to identify the time periods. If NULL, the second column of the panel data set will be the variable denoting the time section.
+  # method: Character. Type of method, either "HJ" (half-panel jackknife, default) or "FE" (conventional within-group demeaned estimatior).
+  # te: Boolean. FALSE (default) to exclude the time effect from the model.
+  # lagX: NULL or Integer. The number of lagged shock variables included as regressors. If NULL, lagX = lagY. 
+  # lagY: Integer. The number of lagged dependent variables included as regressors.  
+  # H: Integer. The maximum horizon for impulse response function estimates.
   
   
   # OUTPUTS
-  # IRF: A matrix, containing the estimated impulse responses. The rows are the horizons.
-  # se: A matrix, containing the standard errors of the estimated impulse responses allowing for the within-group correlation. The rows are the horizons.
+  # IRF: A matrix containing the estimated impulse responses. Each row stands for one horizon.
+  # se: A matrix containing the standard errors clustered by individuals. Each row stands for one horizon.
   
   
   # Check NULL
@@ -140,7 +140,7 @@ LP_panel = function(data,
     yt_X_CC_ylag.tr
   }
   
-  #===Function to Prepare Data for Within-group OLS Estimation===
+  #===Function to Prepare Data for FE Estimation===
   ols_within_dataprepare = function(N, T0h, y_h, x_h, cc_h, pc, lagY, te) {
     
     yt <- c(y_h[,1:N])
@@ -230,7 +230,7 @@ LP_panel = function(data,
     
     h = h.seq[ih]
     
-    # When h=0, it is necessary to reduce one period of samples to ensure that lagy does not report an error
+    # To avoid an error when h = 0 
     if (lagY == 0){
       hh=h
     }else if (lagY > 0){

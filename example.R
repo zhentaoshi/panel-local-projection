@@ -1,20 +1,21 @@
-# This R script simulates a panel dataset
-# and then uses the conventional fixed effect estimation
-# and the half-panel jackknife estimation 
-# to estimate the coefficients and the 
-# impulse response function
+# This R script gives an example that estimates the 
+# impulse response functions with both the conventional 
+# fixed effect (FE) estimator and half-panel jackknife (HJ) estimator.
+# It serves as an instruction of the usage of the LP_panel() function.
 
 
 rm(list=ls())
 
 # Step 1: Data Generating Process =======================
 
-# Parameter settings
 
+## Sample size
 N = 30
 T0 = 60
+
+# Parameter settings
 beta = -0.6
-rho = 0
+rho = 0.5
 
 delta = 0.2
 eta = 0.2
@@ -79,7 +80,7 @@ fit.FE <- LP_panel(data, Y.name = Y.name, X.name = X.name,
 IRF.FE <- data.frame(est = fit.FE$IRF,
                      se = fit.FE$se,
                      lower = fit.FE$IRF  - 1.96*fit.FE$se, 
-                     upper = fit.FE$IRF  - 1.96*fit.FE$se)
+                     upper = fit.FE$IRF  + 1.96*fit.FE$se)
 
 # HJ
 fit.HJ <- LP_panel(data, Y.name = Y.name, X.name = X.name,
@@ -88,7 +89,7 @@ fit.HJ <- LP_panel(data, Y.name = Y.name, X.name = X.name,
 IRF.HJ <- data.frame(est = fit.HJ$IRF,
                      se = fit.HJ$se,
                      lower = fit.HJ$IRF  - 1.96*fit.HJ$se, 
-                     upper = fit.HJ$IRF  - 1.96*fit.HJ$se)
+                     upper = fit.HJ$IRF  + 1.96*fit.HJ$se)
 
 # print results ##########
 cat("estimated IRF by FE \n")
