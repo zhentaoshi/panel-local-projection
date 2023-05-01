@@ -1,23 +1,23 @@
 # Panel Local Projection
-This is the repository for panel local projection to collaborate with
 
-Ziwei Mei, Liugang Sheng, Zhentao Shi (2023), "[Implicit Nickell Bias in Panel Local Projection](https://arxiv.org/abs/2302.13455)", _Working Paper_. 
+This repository hosts code that accompanies
 
-It provides an `R` function to implement the panel local projection that includes two methods: 
+* Ziwei Mei, Liugang Sheng, Zhentao Shi (2023), "[Implicit Nickell Bias in Panel Local Projection](https://arxiv.org/abs/2302.13455)", _arxiv:2302.13455_. 
 
-- The _fixed effect_ (FE) estimator as a common practice that suffers Nickell bias, 
-- The _half-panel jackknife_ (HJ) estimator without asymptotical bias.  
+It offers an `R` function to implement the panel local projection that includes two methods: 
+
+- The conventional _fixed effect_ (FE) estimator. This is the default estimator in most applied works, but we find that it incurs Nickell bias
+- The _half-panel jackknife_ (HJ) estimator eliminates the asymptotical bias and delivers valid statistical inference.
 
 
 
 ### Contents  
 
- `LP_panel.R` includes the main function `LP_panel()` with detailed instructions. 
-
-`example.R` gives an example to demonstrate the usage of the function `LP_panel()`.
+- `LP_panel.R` includes the main function `LP_panel()` with detailed instructions. 
+- `example.R` provides a running example to demonstrate the usage of the function `LP_panel()`.
 
 
 
 ### Contributors 
 
-Ziwei Mei, Zhentao Shi, Shen Shu (Ranked Alphabetically). 
+Ziwei Mei, Zhentao Shi, and Shen Shu
