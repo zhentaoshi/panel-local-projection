@@ -18,6 +18,12 @@ It offers an `R` function to implement the panel local projection that includes 
 - `example.R` provides a running example to demonstrate the usage of the function `LP_panel()`.
 
 
+### R package
+
+```
+devtools::install_github("zhentaoshi/panel-local-projection")
+library("pLP")
+```
 
 ### Contributors 
 
