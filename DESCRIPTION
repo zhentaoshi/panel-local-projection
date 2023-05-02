@@ -1,0 +1,13 @@
+Package: pLP
+Type: Package
+Title: Panel local projection (Title Case)
+Version: 0.1.0
+Authors@R: c(person("Zhentao", "Shi", role = c("aut"), email = "shizhentao@gmail.com" ),
+             person())
+Description: R package for panel local projection using the half-panel jackknife (HJ) estimator, in 
+    Ziwei Mei, Liugang Sheng and Zhentao Shi (2023): "Implicit Nickell Bias in Panel Local Projection"
+    arXiv:2302.13455
+License: MIT
+Encoding: UTF-8
+LazyData: true
+RoxygenNote: 7.2.3
