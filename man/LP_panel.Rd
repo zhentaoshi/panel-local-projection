@@ -58,7 +58,6 @@ This function estimates impulse responses with panel local projections using the
 }
 \examples{
 
-#rm(list=ls())
 
 # Step 1: Data Generating Process =======================
 
@@ -118,8 +117,6 @@ colnames(data) <- c("id","time","Y","X")
 
 
 # Step 2: Regression =====================================
-
-source("LP_panel.R")
 
 H = 10
 Y.name <- c("Y")
