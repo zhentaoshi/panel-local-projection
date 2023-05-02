@@ -34,7 +34,6 @@
 #'
 #' @examples
 #'
-#' #rm(list=ls())
 #'
 #' # Step 1: Data Generating Process =======================
 #'
@@ -94,8 +93,6 @@
 #'
 #'
 #' # Step 2: Regression =====================================
-#'
-#' source("LP_panel.R")
 #'
 #' H = 10
 #' Y.name <- c("Y")
