@@ -3,26 +3,25 @@
 #' @description This function estimates impulse responses with panel local projections using the conventional fixed effect
 #'              estimation and the half-panel jackknife estimation.
 #' @param data      A data frame, containing the panel data set.
-#' @param Y.name    Character. The dependent variable in the panel LP regression.
-#' @param X.name    Character. The shock variables in the panel LP regression.
-#' @param c.name    NULL or Character. The control variables in the panel LP regression. If NULL, the other columns of the
-#'                  panel data set (except id.name, time.name, Y.name, X.name) will be the control variables.
+#' @param Y.name    Character. The dependent variable.
+#' @param X.name    Character. The shock variables.
+#' @param c.name    NULL or Character. The control variables. If NULL, the other columns of the
+#'                  panel data set (except id.name, time.name, Y.name, X.name) are regarded the control variables.
 #' @param id.name   NULL or Character. The column to identify the cross sectional units. If NULL, the first column of the
 #'                  panel data set will be the variable denoting the cross section.
-#' @param time.name NULL or Character. The column to identify the time periods. If NULL, the first column of the panel
+#' @param time.name NULL or Character. The column to identify the time periods. If NULL, the second column of the panel
 #'                  data set will be the variable denoting the time section.
-#' @param method    Character. Type of method, either "HJ" (half-panel jackknife) or "FE" (conventional within-group estimation).
-#' @param te        Boolean. Is the time effect included in the model? TRUE or FALSE (default).
-#' @param lagX      NULL or Integer. The number of lagged shock variables included as regressors.
-#' @param lagY      NULL or Integer. The number of lagged dependent variables included as regressors.
-#' @param H         Integer. The maximum horizon for prediction.
+#' @param method    Character. Type of method, either "HJ" (half-panel jackknife, default) or "FE" (conventional within-group demeaned estimation).
+#' @param te        Boolean. FALSE (default) to exclude the time effect from the model.
+#' @param lagX      NULL or Integer. The number of lagged shock variables included as regressors. If NULL, lagX = lagY.
+#' @param lagY      Integer. The number of lagged dependent variables included as regressors.
+#' @param H         Integer. The maximum horizon for impulse response function estimates.
 #'
 #' @return A list containing:
 #'
-#'\item{IRF}{A matrix, containing the estimated impulse responses. The rows are the horizons.}
+#'\item{IRF}{A matrix, containing the estimated impulse responses. Each row stands for one horizon.}
 #'
-#'\item{se}{A matrix, containing the standard errors of the estimated impulse responses allowing for the
-#'          within-group correlation. The rows are the horizons.}
+#'\item{se}{A matrix, containing the standard errors clustered by individuals. Each row stands for one horizon.}
 #'
 #' @references
 #'
@@ -37,12 +36,13 @@
 #'
 #' # Step 1: Data Generating Process =======================
 #'
-#' # Parameter settings
-#'
+#' # Sample size
 #' N = 30
 #' T0 = 60
+#'
+#' # Parameter settings
 #' beta = -0.6
-#' rho = 0
+#' rho = 0.5
 #'
 #' delta = 0.2
 #' eta = 0.2
@@ -105,7 +105,7 @@
 #' IRF.FE <- data.frame(est = fit.FE$IRF,
 #'                      se = fit.FE$se,
 #'                      lower = fit.FE$IRF  - 1.96*fit.FE$se,
-#'                      upper = fit.FE$IRF  - 1.96*fit.FE$se)
+#'                      upper = fit.FE$IRF  + 1.96*fit.FE$se)
 #'
 #' # HJ
 #' fit.HJ <- LP_panel(data, Y.name = Y.name, X.name = X.name,
@@ -114,7 +114,7 @@
 #' IRF.HJ <- data.frame(est = fit.HJ$IRF,
 #'                      se = fit.HJ$se,
 #'                      lower = fit.HJ$IRF  - 1.96*fit.HJ$se,
-#'                      upper = fit.HJ$IRF  - 1.96*fit.HJ$se)
+#'                      upper = fit.HJ$IRF  + 1.96*fit.HJ$se)
 #'
 #' # print results ##########
 #' cat("estimated IRF by FE \n")
@@ -131,11 +131,11 @@ LP_panel = function(data,
                     c.name = NULL,
                     id.name = NULL,
                     time.name = NULL,
-                    method = NULL,
+                    method = "HJ",
                     te = F,
                     lagX = NULL,
-                    lagY = NULL,
-                    H ) {
+                    lagY = 1,
+                    H = 5) {
 
 
   # Check NULL
@@ -240,7 +240,7 @@ LP_panel = function(data,
     yt_X_CC_ylag.tr
   }
 
-  #===Function to Prepare Data for Within-group OLS Estimation===
+  #===Function to Prepare Data for FE Estimation===
   ols_within_dataprepare = function(N, T0h, y_h, x_h, cc_h, pc, lagY, te) {
 
     yt <- c(y_h[,1:N])
@@ -330,7 +330,7 @@ LP_panel = function(data,
 
     h = h.seq[ih]
 
-    # When h=0, it is necessary to reduce one period of samples to ensure that lagy does not report an error
+    # To avoid an error when h = 0
     if (lagY == 0){
       hh=h
     }else if (lagY > 0){
