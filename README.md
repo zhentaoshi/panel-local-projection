@@ -14,8 +14,7 @@ It offers an `R` function to implement the panel local projection that includes 
 
 ### Contents  
 
-- `LP_panel.R` includes the main function `LP_panel()` with detailed instructions. 
-- `example.R` provides a running example to demonstrate the usage of the function `LP_panel()`.
+- `panelLP.R` includes the main function `panelLP()` with detailed instructions and provides a running example to demonstrate the usage of the function `panelLP()`.
 
 
 ### R package

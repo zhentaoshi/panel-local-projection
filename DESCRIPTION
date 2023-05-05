@@ -3,8 +3,8 @@ Type: Package
 Title: Panel local projection (Title Case)
 Version: 0.1.0
 Authors@R: c(person("Zhentao", "Shi", role = c("aut"), email = "shizhentao@gmail.com" ),
-             person("Ziwei", "Mei", role = c("aut", "cre"), email = "someone@link.cuhk.edu.hk"),
-             person("Shu", "Shen", role = c("aut"), email = "someone@link.cuhk.edu.hk"))
+             person("Ziwei", "Mei", role = c("aut", "cre"), email = "zwmei@link.cuhk.edu.hk"),
+             person("Shu", "Shen", role = c("aut"), email = "shushen710@gmail.com"))
 Description: R package for panel local projection using the half-panel jackknife (HJ) estimator, in 
     Ziwei Mei, Liugang Sheng and Zhentao Shi (2023): "Implicit Nickell Bias in Panel Local Projection"
     arXiv:2302.13455

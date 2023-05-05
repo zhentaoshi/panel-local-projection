@@ -1,7 +1,6 @@
-#' @name LP_panel
-#' @title Estimate impulse responses with panel local projections
-#' @description This function estimates impulse responses with panel local projections using the conventional fixed effect
-#'              estimation and the half-panel jackknife estimation.
+#' @name panelLP
+#' @title Panel local projection
+#' @description It offers the main function `panelLP()` to implement the panel local projection that includes two methods: the conventional fixed effect (FE) estimator and the half-panel jackknife (HJ) estimator that eliminates the asymptotical bias and delivers valid statistical inference.
 #' @param data      A data frame, containing the panel data set.
 #' @param Y.name    Character. The dependent variable.
 #' @param X.name    Character. The shock variables.
@@ -99,7 +98,7 @@
 #' X.name <- c("X")
 #'
 #' # FE
-#' fit.FE <- LP_panel(data, Y.name = Y.name, X.name = X.name,
+#' fit.FE <- panelLP(data, Y.name = Y.name, X.name = X.name,
 #'                    method = "FE", lagX = lagX, lagY = lagY, H = H)
 #'
 #' IRF.FE <- data.frame(est = fit.FE$IRF,
@@ -108,7 +107,7 @@
 #'                      upper = fit.FE$IRF  + 1.96*fit.FE$se)
 #'
 #' # HJ
-#' fit.HJ <- LP_panel(data, Y.name = Y.name, X.name = X.name,
+#' fit.HJ <- panelLP(data, Y.name = Y.name, X.name = X.name,
 #'                    method = "HJ", lagX = lagX, lagY = lagY, H = H)
 #'
 #' IRF.HJ <- data.frame(est = fit.HJ$IRF,
@@ -125,7 +124,7 @@
 #'
 
 
-LP_panel = function(data,
+panelLP = function(data,
                     Y.name,
                     X.name,
                     c.name = NULL,
