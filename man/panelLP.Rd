@@ -2,7 +2,7 @@
 % Please edit documentation in R/panelLP.R
 \name{panelLP}
 \alias{panelLP}
-\title{Panel local projection}
+\title{Panel Local Projection}
 \usage{
 panelLP(
   data,
@@ -77,6 +77,8 @@ lagX = 1
 lagY = 0
 
 # Data initialization
+
+set.seed(20230501)
 
 X=matrix(0,T0,N)
 Y=matrix(0,T0,N)

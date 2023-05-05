@@ -1,5 +1,5 @@
 #' @name panelLP
-#' @title Panel local projection
+#' @title Panel Local Projection
 #' @description It offers the main function `panelLP()` to implement the panel local projection that includes two methods: the conventional fixed effect (FE) estimator and the half-panel jackknife (HJ) estimator that eliminates the asymptotical bias and delivers valid statistical inference.
 #' @param data      A data frame, containing the panel data set.
 #' @param Y.name    Character. The dependent variable.
@@ -53,6 +53,8 @@
 #' lagY = 0
 #'
 #' # Data initialization
+#'
+#' set.seed(20230501)
 #'
 #' X=matrix(0,T0,N)
 #' Y=matrix(0,T0,N)
