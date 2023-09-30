@@ -11,7 +11,7 @@ panelLP(
   c.name = NULL,
   id.name = NULL,
   time.name = NULL,
-  method = "HJ",
+  method = "SPJ",
   te = F,
   lagX = NULL,
   lagY = 1,
@@ -34,7 +34,7 @@ panel data set will be the variable denoting the cross section.}
 \item{time.name}{NULL or Character. The column to identify the time periods. If NULL, the second column of the panel
 data set will be the variable denoting the time section.}
 
-\item{method}{Character. Type of method, either "HJ" (half-panel jackknife, default) or "FE" (conventional within-group demeaned estimation).}
+\item{method}{Character. Type of method, either "SPJ" (split-panel jackknife, default) or "FE" (conventional within-group demeaned estimation).}
 
 \item{te}{Boolean. FALSE (default) to exclude the time effect from the model.}
 
@@ -52,7 +52,7 @@ A list containing:
 \item{se}{A matrix, containing the standard errors clustered by individuals. Each row stands for one horizon.}
 }
 \description{
-It offers the main function `panelLP()` to implement the panel local projection that includes two methods: the conventional fixed effect (FE) estimator and the half-panel jackknife (HJ) estimator that eliminates the asymptotical bias and delivers valid statistical inference.
+It offers the main function `panelLP()` to implement the panel local projection that includes two methods: the conventional fixed effect (FE) estimator and the split-panel jackknife (SPJ) estimator that eliminates the asymptotical bias and delivers valid statistical inference.
 }
 \examples{
 
@@ -132,21 +132,21 @@ IRF.FE <- data.frame(est = fit.FE$IRF,
                      lower = fit.FE$IRF  - 1.96*fit.FE$se,
                      upper = fit.FE$IRF  + 1.96*fit.FE$se)
 
-# HJ
-fit.HJ <- panelLP(data, Y.name = Y.name, X.name = X.name,
-                   method = "HJ", lagX = lagX, lagY = lagY, H = H)
+# SPJ
+fit.SPJ <- panelLP(data, Y.name = Y.name, X.name = X.name,
+                   method = "SPJ", lagX = lagX, lagY = lagY, H = H)
 
-IRF.HJ <- data.frame(est = fit.HJ$IRF,
-                     se = fit.HJ$se,
-                     lower = fit.HJ$IRF  - 1.96*fit.HJ$se,
-                     upper = fit.HJ$IRF  + 1.96*fit.HJ$se)
+IRF.SPJ <- data.frame(est = fit.SPJ$IRF,
+                     se = fit.SPJ$se,
+                     lower = fit.SPJ$IRF  - 1.96*fit.SPJ$se,
+                     upper = fit.SPJ$IRF  + 1.96*fit.SPJ$se)
 
 # print results ##########
 cat("estimated IRF by FE \n")
 print(IRF.FE)
 
-cat("estimated IRF by HJ \n")
-print(IRF.HJ)
+cat("estimated IRF by SPJ \n")
+print(IRF.SPJ)
 
 }
 \references{

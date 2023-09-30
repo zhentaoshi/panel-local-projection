@@ -1,6 +1,6 @@
 #' @name panelLP
 #' @title Panel Local Projection
-#' @description It offers the main function `panelLP()` to implement the panel local projection that includes two methods: the conventional fixed effect (FE) estimator and the half-panel jackknife (HJ) estimator that eliminates the asymptotical bias and delivers valid statistical inference.
+#' @description It offers the main function `panelLP()` to implement the panel local projection that includes two methods: the conventional fixed effect (FE) estimator and the split-panel jackknife (SPJ) estimator that eliminates the asymptotical bias and delivers valid statistical inference.
 #' @param data      A data frame, containing the panel data set.
 #' @param Y.name    Character. The dependent variable.
 #' @param X.name    Character. The shock variables.
@@ -10,7 +10,7 @@
 #'                  panel data set will be the variable denoting the cross section.
 #' @param time.name NULL or Character. The column to identify the time periods. If NULL, the second column of the panel
 #'                  data set will be the variable denoting the time section.
-#' @param method    Character. Type of method, either "HJ" (half-panel jackknife, default) or "FE" (conventional within-group demeaned estimation).
+#' @param method    Character. Type of method, either "SPJ" (split-panel jackknife, default) or "FE" (conventional within-group demeaned estimation).
 #' @param te        Boolean. FALSE (default) to exclude the time effect from the model.
 #' @param lagX      NULL or Integer. The number of lagged shock variables included as regressors. If NULL, lagX = lagY.
 #' @param lagY      Integer. The number of lagged dependent variables included as regressors.
@@ -108,21 +108,21 @@
 #'                      lower = fit.FE$IRF  - 1.96*fit.FE$se,
 #'                      upper = fit.FE$IRF  + 1.96*fit.FE$se)
 #'
-#' # HJ
-#' fit.HJ <- panelLP(data, Y.name = Y.name, X.name = X.name,
-#'                    method = "HJ", lagX = lagX, lagY = lagY, H = H)
+#' # SPJ
+#' fit.SPJ <- panelLP(data, Y.name = Y.name, X.name = X.name,
+#'                    method = "SPJ", lagX = lagX, lagY = lagY, H = H)
 #'
-#' IRF.HJ <- data.frame(est = fit.HJ$IRF,
-#'                      se = fit.HJ$se,
-#'                      lower = fit.HJ$IRF  - 1.96*fit.HJ$se,
-#'                      upper = fit.HJ$IRF  + 1.96*fit.HJ$se)
+#' IRF.SPJ <- data.frame(est = fit.SPJ$IRF,
+#'                      se = fit.SPJ$se,
+#'                      lower = fit.SPJ$IRF  - 1.96*fit.SPJ$se,
+#'                      upper = fit.SPJ$IRF  + 1.96*fit.SPJ$se)
 #'
 #' # print results ##########
 #' cat("estimated IRF by FE \n")
 #' print(IRF.FE)
 #'
-#' cat("estimated IRF by HJ \n")
-#' print(IRF.HJ)
+#' cat("estimated IRF by SPJ \n")
+#' print(IRF.SPJ)
 #'
 
 
@@ -132,7 +132,7 @@ panelLP = function(data,
                     c.name = NULL,
                     id.name = NULL,
                     time.name = NULL,
-                    method = "HJ",
+                    method = "SPJ",
                     te = F,
                     lagX = NULL,
                     lagY = 1,
@@ -399,13 +399,13 @@ panelLP = function(data,
 
 
 
-    } else if (method == "HJ") {
+    } else if (method == "SPJ") {
 
       # function--ols_within_dataprepare
-      HJdata = ols_within_dataprepare(N, T0h, y_h, x_h, cc_h, pc, lagY, te)
+      SPJdata = ols_within_dataprepare(N, T0h, y_h, x_h, cc_h, pc, lagY, te)
 
-      dep_var = HJdata[,1]
-      indep_var = as.matrix(HJdata[,-1])
+      dep_var = SPJdata[,1]
+      indep_var = as.matrix(SPJdata[,-1])
       fit_h=lm(dep_var ~ indep_var + 0)
       beta_all=fit_h$coefficients
 
@@ -425,10 +425,10 @@ panelLP = function(data,
       }
 
       # function--ols_within_dataprepare
-      HJdata_a = ols_within_dataprepare(N, T0h, y_h_a, x_h_a, cc_h_a, pc, lagY, te)
+      SPJdata_a = ols_within_dataprepare(N, T0h, y_h_a, x_h_a, cc_h_a, pc, lagY, te)
 
-      dep_var_a = HJdata_a[,1]
-      indep_var_a = as.matrix(HJdata_a[,-1])
+      dep_var_a = SPJdata_a[,1]
+      indep_var_a = as.matrix(SPJdata_a[,-1])
       fit_h_a=lm(dep_var_a ~ indep_var_a + 0)
       beta_a = fit_h_a$coefficients
 
@@ -442,10 +442,10 @@ panelLP = function(data,
       }
 
       # function--ols_within_dataprepare
-      HJdata_b = ols_within_dataprepare(N, T0h, y_h_b, x_h_b, cc_h_b, pc, lagY, te)
+      SPJdata_b = ols_within_dataprepare(N, T0h, y_h_b, x_h_b, cc_h_b, pc, lagY, te)
 
-      dep_var_b = HJdata_b[,1]
-      indep_var_b = as.matrix(HJdata_b[,-1])
+      dep_var_b = SPJdata_b[,1]
+      indep_var_b = as.matrix(SPJdata_b[,-1])
       fit_h_b=lm(dep_var_b ~ indep_var_b + 0)
       beta_b = fit_h_b$coefficients
 

@@ -8,7 +8,7 @@ This repository hosts an R package that accompanies
 It offers an `R` function to implement the panel local projection that includes two methods: 
 
 - The _fixed effect_ (FE) estimator. This is the default estimator in most applied works, but we find that it incurs Nickell bias
-- The _half-panel jackknife_ (HJ) estimator eliminates the asymptotical bias and delivers valid statistical inference.
+- The _split-panel jackknife_ (SPJ) estimator eliminates the asymptotical bias and delivers valid statistical inference.
 
 ```
 devtools::install_github("zhentaoshi/panel-local-projection")
