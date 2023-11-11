@@ -3,7 +3,7 @@
 
 This repository hosts an R package that accompanies
 
-* Ziwei Mei, Liugang Sheng, Zhentao Shi (2023), "[Implicit Nickell Bias in Panel Local Projection](https://arxiv.org/abs/2302.13455)", _arxiv:2302.13455_. 
+* Ziwei Mei, Liugang Sheng, Zhentao Shi (2023), "[Nickell Bias in Panel Local Projection](https://arxiv.org/abs/2302.13455)", _arxiv:2302.13455_. 
 
 It offers an `R` function to implement the panel local projection that includes two methods: 
 
