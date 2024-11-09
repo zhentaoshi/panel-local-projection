@@ -14,33 +14,35 @@ panelLP(
   method = "SPJ",
   te = F,
   lagX = NULL,
-  lagY = 1,
-  H = 5
+  lagY = NULL,
+  H
 )
 }
 \arguments{
-\item{data}{A data frame, containing the panel data set.}
+\item{data}{A data frame, containing the panel data set sorted by the cross sectional units and the time periods.}
 
 \item{Y.name}{Character. The dependent variable.}
 
 \item{X.name}{Character. The shock variables.}
 
-\item{c.name}{NULL or Character. The control variables. If NULL, the other columns of the
-panel data set (except id.name, time.name, Y.name, X.name) are regarded the control variables.}
+\item{c.name}{NULL (default) or Character. The control variables.}
 
-\item{id.name}{NULL or Character. The column to identify the cross sectional units. If NULL, the first column of the
-panel data set will be the variable denoting the cross section.}
+\item{id.name}{NULL (default) or Character. The column to identify the cross sectional units. If NULL, the first column of
+the panel data set will be the variable denoting the cross section.}
 
-\item{time.name}{NULL or Character. The column to identify the time periods. If NULL, the second column of the panel
+\item{time.name}{NULL (default) or Character. The column to identify the time periods. If NULL, the second column of the panel
 data set will be the variable denoting the time section.}
 
-\item{method}{Character. Type of method, either "SPJ" (split-panel jackknife, default) or "FE" (conventional within-group demeaned estimation).}
+\item{method}{Character. "SPJ" (default) or "FE". Type of method, either "SPJ" (split-panel jackknife, default) or "FE"
+(conventional within-group demeaned estimation).}
 
 \item{te}{Boolean. FALSE (default) to exclude the time effect from the model.}
 
-\item{lagX}{NULL or Integer. The number of lagged shock variables included as regressors. If NULL, lagX = lagY.}
+\item{lagX}{NULL (default) or Integer. The number of lagged shock variables included as regressors. If NULL, no lagged
+shock variables included.}
 
-\item{lagY}{Integer. The number of lagged dependent variables included as regressors.}
+\item{lagY}{NULL (default) or Integer. The number of lagged dependent variables included as regressors. If NULL, no
+lagged dependent variables included.}
 
 \item{H}{Integer. The maximum horizon for impulse response function estimates.}
 }
@@ -52,7 +54,9 @@ A list containing:
 \item{se}{A matrix, containing the standard errors clustered by individuals. Each row stands for one horizon.}
 }
 \description{
-It offers the main function `panelLP()` to implement the panel local projection that includes two methods: the conventional fixed effect (FE) estimator and the split-panel jackknife (SPJ) estimator that eliminates the asymptotical bias and delivers valid statistical inference.
+It offers the main function `panelLP()` to implement the panel local projection that includes two methods: the
+             conventional fixed effect (FE) estimator and the split-panel jackknife (SPJ) estimator that eliminates the
+             asymptotical bias and delivers valid statistical inference.
 }
 \examples{
 
@@ -125,28 +129,28 @@ X.name <- c("X")
 
 # FE
 fit.FE <- panelLP(data, Y.name = Y.name, X.name = X.name,
-                   method = "FE", lagX = lagX, lagY = lagY, H = H)
+                   method = "FE", lagX = lagX, H = H)
 
-IRF.FE <- data.frame(est = fit.FE$IRF,
-                     se = fit.FE$se,
-                     lower = fit.FE$IRF  - 1.96*fit.FE$se,
-                     upper = fit.FE$IRF  + 1.96*fit.FE$se)
+results.FE <- data.frame(IRF = fit.FE$IRF,
+                         se = fit.FE$se,
+                         lower = fit.FE$IRF  - 1.96*fit.FE$se,
+                         upper = fit.FE$IRF  - 1.96*fit.FE$se)
 
 # SPJ
 fit.SPJ <- panelLP(data, Y.name = Y.name, X.name = X.name,
-                   method = "SPJ", lagX = lagX, lagY = lagY, H = H)
+                   method = "SPJ", lagX = lagX, H = H)
 
-IRF.SPJ <- data.frame(est = fit.SPJ$IRF,
-                     se = fit.SPJ$se,
-                     lower = fit.SPJ$IRF  - 1.96*fit.SPJ$se,
-                     upper = fit.SPJ$IRF  + 1.96*fit.SPJ$se)
+results.SPJ <- data.frame(IRF = fit.SPJ$IRF,
+                          se = fit.SPJ$se,
+                          lower = fit.SPJ$IRF  - 1.96*fit.SPJ$se,
+                          upper = fit.SPJ$IRF  - 1.96*fit.SPJ$se)
 
 # print results ##########
 cat("estimated IRF by FE \n")
-print(IRF.FE)
+print(results.FE)
 
 cat("estimated IRF by SPJ \n")
-print(IRF.SPJ)
+print(results.SPJ)
 
 }
 \references{

@@ -1,19 +1,23 @@
 #' @name panelLP
 #' @title Panel Local Projection
-#' @description It offers the main function `panelLP()` to implement the panel local projection that includes two methods: the conventional fixed effect (FE) estimator and the split-panel jackknife (SPJ) estimator that eliminates the asymptotical bias and delivers valid statistical inference.
-#' @param data      A data frame, containing the panel data set.
+#' @description It offers the main function `panelLP()` to implement the panel local projection that includes two methods: the
+#'              conventional fixed effect (FE) estimator and the split-panel jackknife (SPJ) estimator that eliminates the
+#'              asymptotical bias and delivers valid statistical inference.
+#' @param data      A data frame, containing the panel data set sorted by the cross sectional units and the time periods.
 #' @param Y.name    Character. The dependent variable.
 #' @param X.name    Character. The shock variables.
-#' @param c.name    NULL or Character. The control variables. If NULL, the other columns of the
-#'                  panel data set (except id.name, time.name, Y.name, X.name) are regarded the control variables.
-#' @param id.name   NULL or Character. The column to identify the cross sectional units. If NULL, the first column of the
-#'                  panel data set will be the variable denoting the cross section.
-#' @param time.name NULL or Character. The column to identify the time periods. If NULL, the second column of the panel
+#' @param c.name    NULL (default) or Character. The control variables.
+#' @param id.name   NULL (default) or Character. The column to identify the cross sectional units. If NULL, the first column of
+#'                  the panel data set will be the variable denoting the cross section.
+#' @param time.name NULL (default) or Character. The column to identify the time periods. If NULL, the second column of the panel
 #'                  data set will be the variable denoting the time section.
-#' @param method    Character. Type of method, either "SPJ" (split-panel jackknife, default) or "FE" (conventional within-group demeaned estimation).
+#' @param method    Character. "SPJ" (default) or "FE". Type of method, either "SPJ" (split-panel jackknife, default) or "FE"
+#'                  (conventional within-group demeaned estimation).
 #' @param te        Boolean. FALSE (default) to exclude the time effect from the model.
-#' @param lagX      NULL or Integer. The number of lagged shock variables included as regressors. If NULL, lagX = lagY.
-#' @param lagY      Integer. The number of lagged dependent variables included as regressors.
+#' @param lagX      NULL (default) or Integer. The number of lagged shock variables included as regressors. If NULL, no lagged
+#'                  shock variables included.
+#' @param lagY      NULL (default) or Integer. The number of lagged dependent variables included as regressors. If NULL, no
+#'                  lagged dependent variables included.
 #' @param H         Integer. The maximum horizon for impulse response function estimates.
 #'
 #' @return A list containing:
@@ -101,42 +105,42 @@
 #'
 #' # FE
 #' fit.FE <- panelLP(data, Y.name = Y.name, X.name = X.name,
-#'                    method = "FE", lagX = lagX, lagY = lagY, H = H)
+#'                    method = "FE", lagX = lagX, H = H)
 #'
-#' IRF.FE <- data.frame(est = fit.FE$IRF,
-#'                      se = fit.FE$se,
-#'                      lower = fit.FE$IRF  - 1.96*fit.FE$se,
-#'                      upper = fit.FE$IRF  + 1.96*fit.FE$se)
+#' results.FE <- data.frame(IRF = fit.FE$IRF,
+#'                          se = fit.FE$se,
+#'                          lower = fit.FE$IRF  - 1.96*fit.FE$se,
+#'                          upper = fit.FE$IRF  - 1.96*fit.FE$se)
 #'
 #' # SPJ
 #' fit.SPJ <- panelLP(data, Y.name = Y.name, X.name = X.name,
-#'                    method = "SPJ", lagX = lagX, lagY = lagY, H = H)
+#'                    method = "SPJ", lagX = lagX, H = H)
 #'
-#' IRF.SPJ <- data.frame(est = fit.SPJ$IRF,
-#'                      se = fit.SPJ$se,
-#'                      lower = fit.SPJ$IRF  - 1.96*fit.SPJ$se,
-#'                      upper = fit.SPJ$IRF  + 1.96*fit.SPJ$se)
+#' results.SPJ <- data.frame(IRF = fit.SPJ$IRF,
+#'                           se = fit.SPJ$se,
+#'                           lower = fit.SPJ$IRF  - 1.96*fit.SPJ$se,
+#'                           upper = fit.SPJ$IRF  - 1.96*fit.SPJ$se)
 #'
 #' # print results ##########
 #' cat("estimated IRF by FE \n")
-#' print(IRF.FE)
+#' print(results.FE)
 #'
 #' cat("estimated IRF by SPJ \n")
-#' print(IRF.SPJ)
+#' print(results.SPJ)
 #'
 
 
 panelLP = function(data,
-                    Y.name,
-                    X.name,
-                    c.name = NULL,
-                    id.name = NULL,
-                    time.name = NULL,
-                    method = "SPJ",
-                    te = F,
-                    lagX = NULL,
-                    lagY = 1,
-                    H = 5) {
+                   Y.name,
+                   X.name,
+                   c.name = NULL,
+                   id.name = NULL,
+                   time.name = NULL,
+                   method = "SPJ",
+                   te = F,
+                   lagX = NULL,
+                   lagY = NULL,
+                   H ) {
 
 
   # Check NULL
@@ -146,18 +150,18 @@ panelLP = function(data,
   if(is.null(time.name)){
     time.name <- names(data)[2]
   }
-  if (is.null(c.name)){
-    c.name <- names(data)[which(!(colnames(data) %in% c(Y.name,X.name,id.name,time.name)))]
-  }
   if(is.null(lagX)){
-    lagX = max(lagY,1)
+    lagX = 0
+  }
+  if(is.null(lagY)){
+    lagY = 0
   }
 
+  # Obtain basic parameters
   px = length(X.name)
   pc = length(c.name)
   N = length(unique(data[,id.name]))
   T0 <- length(sort(unique(data[,time.name])))
-  lag.max <- max(lagX,lagY)
   h.seq = 0:H
 
   # Prepare matrices to store results
@@ -188,99 +192,118 @@ panelLP = function(data,
     }
     data.new <- rbind(data.new, data_nn)
   }
-
-  # Create data for regression
   data <- data.new
 
-  y.long <- as.matrix(data[,Y.name])
-  X.long <- as.matrix(data[,X.name])
-  cc.long <- as.matrix(data[,c.name])
+  # Create data for regression
+  y_tn <- as.matrix(data[,Y.name])
+  x_tn_p <- as.matrix(data[,X.name])
+  c_tn_p <- as.matrix(data[,c.name])
 
-  y <- matrix(y.long, ncol = N)
-  x <- NULL
-  for (ix in 1:px){
-    x = cbind(x, matrix(X.long[,ix], ncol = N))
-  }
-  cc <- NULL
-  if (pc > 0){
-    for (ic in 1:pc){
-      cc = cbind(cc, matrix(cc.long[,ic], ncol = N))
-    }
-  }
+  # Create lagged matrix for Y and X
 
+  #===Function to Lag Each Column of a Matrix===
+  lag_matrix <- function(x, n) {
+    # Initialize a lagged matrix with NA values
+    lag_x <- matrix(NA, nrow = nrow(x), ncol = ncol(x))
 
-  #===Function to Demean Data===
-  demean = function(type_i, type_want, yt_X_CC_ylag, type="t") {
-
-    # type="t": demean t; type="n": demean n
-
-    yt_X_CC_ylag.dm <- yt_X_CC_ylag
-    for (i in 1:type_i) {
-      want <- 1:type_want + (i-1)*type_want
-      want.mean <- rowSums(is.na(yt_X_CC_ylag[want,])) == 0
-      for (iv in 1:ncol(yt_X_CC_ylag)) {
-        yt_X_CC_ylag.dm[want,iv] <- yt_X_CC_ylag.dm[want,iv] - mean(yt_X_CC_ylag[want[want.mean],iv])
+    # Apply lag operation for each column
+    for (i in 1:ncol(x)) {
+      if (n >= nrow(x)) {
+        # If lag period is greater than or equal to the number of rows, set entire column to NA
+        lag_x[, i] <- rep(NA, nrow(x))
+      } else {
+        # Otherwise, perform the lag operation
+        lag_x[, i] <- c(rep(NA, n), x[1:(nrow(x) - n), i])
       }
     }
 
-    yt_X_CC_ylag.dm
+    # Return the lagged matrix
+    return(lag_x)
   }
 
-  #===Function to Transform Data Arrangements===
-  transf = function(N, T0h, yt_X_CC_ylag, type="tnl_ntl") {
-
-    # type="tnl_ntl": T*N to N*T; type="ntl_tnl": N*T to T*N
-
-    if (type == "tnl_ntl") { col=N } else if (type=="ntl_tnl") { col=T0h }
-
-    yt_X_CC_ylag.tr = NULL
-    for (iv in 1:ncol(yt_X_CC_ylag)) {
-      yt_X_CC_ylag.tr = cbind(yt_X_CC_ylag.tr, matrix(t(matrix(yt_X_CC_ylag[,iv], ncol=col)), nrow=N*T0h))
-    }
-
-    yt_X_CC_ylag.tr
+  # Reshape y and x into matrix
+  ymat_t_n <- matrix(y_tn, ncol = N) # T rows and N columns
+  xmat_t_np <- NULL  # T rows and N*px columns
+  for (ix in 1:px){
+    xmat_t_np = cbind(xmat_t_np, matrix(x_tn_p[,ix], ncol = N))
   }
 
-  #===Function to Prepare Data for FE Estimation===
-  ols_within_dataprepare = function(N, T0h, y_h, x_h, cc_h, pc, lagY, te) {
-
-    yt <- c(y_h[,1:N])
-    X <- matrix(x_h, nrow=length(yt))
-    CC = NULL
-    if (pc >0) {
-      CC <- matrix(cc_h, nrow=length(yt))
+  # Create lagged matrix for y and x
+  ylagmat_t_nl <- NULL
+  if (lagY >= 1) {
+    for (ilagY in 1:lagY) {
+      ylagmat_t_nl = cbind(ylagmat_t_nl, lag_matrix(ymat_t_n, ilagY))
     }
-    ylag <- NULL
-    if (lagY >= 1) {
-      ylag <- matrix(y_h[,-(1:N)], nrow=length(yt))
+  }
+  xlagmat_t_npl <- NULL
+  if (lagX >= 1) {
+    for (ilagX in 1:lagX) {
+      xlagmat_t_npl = cbind(xlagmat_t_npl, lag_matrix(xmat_t_np, ilagX))
     }
+  }
 
-    yt_X_CC_ylag = cbind(yt, X, CC, ylag)
+
+
+  #===Function to Prepare Data for Within-group OLS Estimation===
+  ols_within_dataprepare = function(N, T0, yf_x_ylag_xlag_c, te) {
+
+    #===Function to Demean Data===
+    demean = function(type_i, type_want, yf_x_ylag_xlag_c) {
+
+      # type_i=t: demean t; type_i=n: demean n
+
+      yf_x_ylag_xlag_c.dm <- yf_x_ylag_xlag_c
+      for (i in 1:type_i) {
+        want <- 1:type_want + (i-1)*type_want
+        want.mean <- rowSums(is.na(yf_x_ylag_xlag_c[want,])) == 0
+        for (iv in 1:ncol(yf_x_ylag_xlag_c)) {
+          yf_x_ylag_xlag_c.dm[want,iv] <- yf_x_ylag_xlag_c.dm[want,iv] - mean(yf_x_ylag_xlag_c[want[want.mean],iv])
+        }
+      }
+
+      yf_x_ylag_xlag_c.dm
+    }
 
     # function--demean_t
-    dt=demean(N, T0h, yt_X_CC_ylag, type="t")
+    data.dn=demean(N, T0, yf_x_ylag_xlag_c)
 
     if (te == F) {
 
-      dataprepare = dt
+      dataprepare = data.dn
 
     } else if (te == T) {
 
+      #===Function to Transform Data Arrangements===
+      transf = function(N, T0, yf_x_ylag_xlag_c, type="tnl_ntl") {
+
+        # type="tnl_ntl": T*N to N*T; type="ntl_tnl": N*T to T*N
+
+        if (type == "tnl_ntl") { col=N } else if (type=="ntl_tnl") { col=T0 }
+
+        yf_x_ylag_xlag_c.tr = NULL
+        for (iv in 1:ncol(yf_x_ylag_xlag_c)) {
+          yf_x_ylag_xlag_c.tr = cbind(yf_x_ylag_xlag_c.tr, matrix(t(matrix(yf_x_ylag_xlag_c[,iv], ncol=col)), nrow=N*T0))
+        }
+
+        yf_x_ylag_xlag_c.tr
+      }
+
       # function--transf_nt+demean_n+transfer_tn
-      dataprepare=transf(N, T0h, demean(T0h, N, transf(N, T0h, dt, type="tnl_ntl"), type="n"), type="ntl_tnl")
+      dataprepare=transf(N, T0, demean(T0, N, transf(N, T0, data.dn, type="tnl_ntl")), type="ntl_tnl")
     }
 
     dataprepare
   }
 
+
   #===Function to Compute the Variance of the Estimated Coefficients===
-  var_hat = function(N, T0h, indep_var, res.vec, dd.mat=indep_var) {
+  var_hat = function(N, T0, indep_var, res.vec, dd.mat=indep_var) {
 
     W_N = matrix(0, ncol(indep_var), ncol(indep_var))
     res_N <- matrix(res.vec, ncol = N)
 
     for (iN in 1:N){
-      dd_iN <- as.matrix(dd.mat[(iN-1)*T0h+(1:T0h),])
+      dd_iN <- as.matrix(dd.mat[(iN-1)*T0+(1:T0),])
       want_iN <- !( rowSums(is.na(dd_iN))>0 | is.na(res_N[,iN]))
       if (sum(want_iN) == 1) {
         temp <- as.matrix(dd_iN[want_iN,])%*%res_N[want_iN,iN]
@@ -297,6 +320,7 @@ panelLP = function(data,
 
     var0_mat <- solve(temp) %*% W %*% solve(temp)
   }
+
 
   #===Function to Split Data===
   split_var = function(cut, N, var, fhalf=NULL, shalf=NULL) {
@@ -327,55 +351,56 @@ panelLP = function(data,
   }
 
 
+
   for(ih in 1:length(h.seq)){
 
     h = h.seq[ih]
 
-    # To avoid an error when h = 0
-    if (lagY == 0){
-      hh=h
-    }else if (lagY > 0){
-      hh=max(h,1)
-    }
+    # Create leaded matrix for y
 
-    T0h=T0-hh-lag.max+1
+    #===Function to lead each column of a matrix by a specified number of periods===
+    lead_matrix <- function(x, n) {
+      # Initialize a leaded matrix with NA values
+      lead_x <- matrix(NA, nrow = nrow(x), ncol = ncol(x))
 
-    y_h <- y[(hh+lag.max):(T0),]
-    if (lagY >= 1){
-      for (ilag in 0:(lagY-1)){
-        if (h == 0){
-          y.temp <- y[(hh+lag.max-ilag-1):(T0-ilag-1),]
-        }else{
-          y.temp <- y[(lag.max-ilag):(T0-hh-ilag),]
-        }
-        y_h <- cbind(y_h, y.temp)
-      }
-    }
-
-    x_h <- NULL
-    for (ipx in 1:px){
-      x_h_ipx <- NULL
-      if (h == 0){
-        x_h_ipx <- x[(hh+lag.max):(T0),(ipx-1)*N+1:N]
-      }else{
-        for (ilag in 0:(lagX-1)){
-          x.temp <- x[(lag.max-ilag):(T0-hh-ilag),(ipx-1)*N+1:N]
-          x_h_ipx <- cbind(x_h_ipx, x.temp)
+      # Apply lead operation for each column
+      for (i in 1:ncol(x)) {
+        if (n >= nrow(x)) {
+          # If lead period is greater than or equal to the number of rows, set entire column to NA
+          lead_x[, i] <- rep(NA, nrow(x))
+        } else {
+          # Otherwise, perform the lead operation
+          lead_x[, i] <- c(x[(n + 1):nrow(x), i], rep(NA, n))
         }
       }
-      x_h <- cbind(x_h, x_h_ipx)
+
+      # Return the leaded matrix
+      return(lead_x)
     }
 
-    if (pc > 0){
-      cc_h=cc[(hh+lag.max):T0,]
+    # Create leads for y
+    yfmat_t_n = lead_matrix(ymat_t_n, h)
+
+    # Create data for regression
+    yf_tn <- matrix(yfmat_t_n, nrow=N*T0)
+
+    ylag_tn_l <- NULL
+    if (lagY >= 1) {
+      ylag_tn_l <- matrix(ylagmat_t_nl, nrow=N*T0)
     }
+    xlag_tn_pl <- NULL
+    if (lagX >= 1) {
+      xlag_tn_pl <- matrix(xlagmat_t_npl, nrow=N*T0)
+    }
+
+    yf_x_ylag_xlag_c = cbind(yf_tn, x_tn_p, ylag_tn_l, xlag_tn_pl, c_tn_p)
 
 
 
     if(method == "FE") {
 
       # function--ols_within_dataprepare
-      FEdata = ols_within_dataprepare(N, T0h, y_h, x_h, cc_h, pc, lagY, te)
+      FEdata = ols_within_dataprepare(N, T0, yf_x_ylag_xlag_c, te)
 
       dep_var = FEdata[,1]
       indep_var = as.matrix(FEdata[,-1])
@@ -389,7 +414,7 @@ panelLP = function(data,
       }
 
       # function--var_hat
-      var.hat=var_hat(N, T0h, indep_var, res.vec, dd.mat=indep_var)
+      var.hat=var_hat(N, T0, indep_var, res.vec, dd.mat=indep_var)
 
       if (h == 0){
         se[ih,] = sqrt(diag( as.matrix(var.hat) ))[1:px]
@@ -402,7 +427,7 @@ panelLP = function(data,
     } else if (method == "SPJ") {
 
       # function--ols_within_dataprepare
-      SPJdata = ols_within_dataprepare(N, T0h, y_h, x_h, cc_h, pc, lagY, te)
+      SPJdata = ols_within_dataprepare(N, T0, yf_x_ylag_xlag_c, te)
 
       dep_var = SPJdata[,1]
       indep_var = as.matrix(SPJdata[,-1])
@@ -417,15 +442,17 @@ panelLP = function(data,
 
 
       ### Regression for sample a
-      # function--split_var
-      y_h_a = split_var(cut, N, y_h, fhalf=y_h, shalf=NULL)
-      x_h_a = split_var(cut, N, x_h, fhalf=x_h, shalf=NULL)
-      if (pc >0){
-        cc_h_a = split_var(cut, N, cc_h, fhalf=cc_h, shalf=NULL)
+
+      yf_x_ylag_xlag_c_a = NULL
+      for (iv in 1:ncol(yf_x_ylag_xlag_c)) {
+        var = matrix(yf_x_ylag_xlag_c[,iv], ncol=N)
+        # function--split_var
+        var_half = split_var(cut, N, var, fhalf=var, shalf=NULL)
+        yf_x_ylag_xlag_c_a = cbind(yf_x_ylag_xlag_c_a, c(var_half))
       }
 
       # function--ols_within_dataprepare
-      SPJdata_a = ols_within_dataprepare(N, T0h, y_h_a, x_h_a, cc_h_a, pc, lagY, te)
+      SPJdata_a = ols_within_dataprepare(N, T0, yf_x_ylag_xlag_c_a, te)
 
       dep_var_a = SPJdata_a[,1]
       indep_var_a = as.matrix(SPJdata_a[,-1])
@@ -435,14 +462,17 @@ panelLP = function(data,
 
       ### Regression for sample b
       # function--split_var
-      y_h_b = split_var(cut, N, y_h, fhalf=NULL, shalf=y_h)
-      x_h_b = split_var(cut, N, x_h, fhalf=NULL, shalf=x_h)
-      if (pc >0){
-        cc_h_b = split_var(cut, N, cc_h, fhalf=NULL, shalf=cc_h)
+      yf_x_ylag_xlag_c_b = NULL
+      for (iv in 1:ncol(yf_x_ylag_xlag_c)) {
+        var = matrix(yf_x_ylag_xlag_c[,iv], ncol=N)
+        # function--split_var
+        var_half = split_var(cut, N, var, fhalf=NULL, shalf=var)
+        yf_x_ylag_xlag_c_b = cbind(yf_x_ylag_xlag_c_b, c(var_half))
       }
 
+
       # function--ols_within_dataprepare
-      SPJdata_b = ols_within_dataprepare(N, T0h, y_h_b, x_h_b, cc_h_b, pc, lagY, te)
+      SPJdata_b = ols_within_dataprepare(N, T0, yf_x_ylag_xlag_c_b, te)
 
       dep_var_b = SPJdata_b[,1]
       indep_var_b = as.matrix(SPJdata_b[,-1])
@@ -462,16 +492,16 @@ panelLP = function(data,
       ### S.E.
       res.vec <- dep_var - indep_var %*% beta.hat
 
-      XX.mat <- matrix(indep_var, nrow = T0h)
-      XX.mat.a <- matrix(indep_var_a, nrow = T0h)
-      XX.mat.b <- matrix(indep_var_b, nrow = T0h)
+      XX.mat <- matrix(indep_var, nrow = T0)
+      XX.mat.a <- matrix(indep_var_a, nrow = T0)
+      XX.mat.b <- matrix(indep_var_b, nrow = T0)
       # function--split_var
       XX.mat.sub = split_var(cut, N, XX.mat, fhalf=XX.mat.a, shalf=XX.mat.b)
       dd.mat <- 2*XX.mat - XX.mat.sub
       dd.mat <- matrix(dd.mat, ncol = ncol(indep_var))
 
       # function--var_hat
-      var.hat=var_hat(N, T0h, indep_var, res.vec, dd.mat=dd.mat)
+      var.hat=var_hat(N, T0, indep_var, res.vec, dd.mat=dd.mat)
 
       if (h == 0){
         se[ih,] = sqrt( diag(var.hat ))[1:px]
