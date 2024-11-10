@@ -14,11 +14,11 @@
 #' @param method    Character. "SPJ" (default) or "FE". Type of method, either "SPJ" (split-panel jackknife, default) or "FE"
 #'                  (conventional within-group demeaned estimation).
 #' @param te        Boolean. FALSE (default) to exclude the time effect from the model.
-#' @param lagX      NULL (default) or Integer. The number of lagged shock variables included as regressors. If NULL, no lagged
-#'                  shock variables included.
-#' @param lagY      NULL (default) or Integer. The number of lagged dependent variables included as regressors. If NULL, no
-#'                  lagged dependent variables included.
-#' @param H         Integer. The maximum horizon for impulse response function estimates.
+#' @param lagX      NULL (default) or Integer. The number of lagged shock variables included as regressors. If NULL or 0, no
+#'                  lagged shock variables will be included.
+#' @param lagY      NULL (default) or Integer. The number of lagged dependent variables included as regressors. If NULL or 0, no
+#'                  lagged dependent variables will be included.
+#' @param H         Integer. The horizon for impulse response function estimates is 0:H.
 #'
 #' @return A list containing:
 #'
@@ -45,16 +45,13 @@
 #'
 #' # Parameter settings
 #' beta = -0.6
-#' rho = 0.5
+#' rho = 0.8
 #'
 #' delta = 0.2
 #' eta = 0.2
 #' sigmamu = 1
 #' sigmaep = 1
 #' sigmachi = 1
-#'
-#' lagX = 1
-#' lagY = 0
 #'
 #' # Data initialization
 #'
@@ -104,22 +101,20 @@
 #' X.name <- c("X")
 #'
 #' # FE
-#' fit.FE <- panelLP(data, Y.name = Y.name, X.name = X.name,
-#'                    method = "FE", lagX = lagX, H = H)
+#' fit.FE <- panelLP(data, Y.name = Y.name, X.name = X.name, method = "FE", H = H)
 #'
 #' results.FE <- data.frame(IRF = fit.FE$IRF,
 #'                          se = fit.FE$se,
 #'                          lower = fit.FE$IRF  - 1.96*fit.FE$se,
-#'                          upper = fit.FE$IRF  - 1.96*fit.FE$se)
+#'                          upper = fit.FE$IRF  + 1.96*fit.FE$se)
 #'
 #' # SPJ
-#' fit.SPJ <- panelLP(data, Y.name = Y.name, X.name = X.name,
-#'                    method = "SPJ", lagX = lagX, H = H)
+#' fit.SPJ <- panelLP(data, Y.name = Y.name, X.name = X.name, method = "SPJ", H = H)
 #'
 #' results.SPJ <- data.frame(IRF = fit.SPJ$IRF,
 #'                           se = fit.SPJ$se,
 #'                           lower = fit.SPJ$IRF  - 1.96*fit.SPJ$se,
-#'                           upper = fit.SPJ$IRF  - 1.96*fit.SPJ$se)
+#'                           upper = fit.SPJ$IRF  + 1.96*fit.SPJ$se)
 #'
 #' # print results ##########
 #' cat("estimated IRF by FE \n")
