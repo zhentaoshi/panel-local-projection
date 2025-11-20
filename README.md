@@ -3,12 +3,12 @@
 
 This repository hosts an R package that accompanies
 
-* Ziwei Mei, Liugang Sheng, Zhentao Shi (2023), "[Nickell Bias in Panel Local Projection](https://arxiv.org/abs/2302.13455)", _arxiv:2302.13455_. 
+* Ziwei Mei, Liugang Sheng, Zhentao Shi (2025), "[Nickell Bias in Panel Local Projection](https://arxiv.org/abs/2302.13455)", _arxiv:2302.13455_. *Journal of International Economics*.
 
 It offers an `R` function to implement the panel local projection that includes two methods: 
 
 - The _fixed effect_ (FE) estimator. This is the default estimator in most applied works, but we find that it incurs Nickell bias
-- The _split-panel jackknife_ (SPJ) estimator eliminates the asymptotical bias and delivers valid statistical inference.
+- The _split-panel jackknife_ (SPJ) estimator eliminates the asymptotic bias and delivers valid statistical inference.
 
 ```
 devtools::install_github("zhentaoshi/panel-local-projection")

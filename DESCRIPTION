@@ -6,7 +6,7 @@ Authors@R: c(person("Zhentao", "Shi", role = c("aut"), email = "shizhentao@gmail
              person("Ziwei", "Mei", role = c("aut", "cre"), email = "zwmei@link.cuhk.edu.hk"),
              person("Shu", "Shen", role = c("aut"), email = "shushen710@gmail.com"))
 Description: R package for panel local projection using the split-panel jackknife (SPJ) estimator, in 
-    Ziwei Mei, Liugang Sheng and Zhentao Shi (2023): "Implicit Nickell Bias in Panel Local Projection"
+    Ziwei Mei, Liugang Sheng and Zhentao Shi (2025): "Nickell Bias in Panel Local Projection"
     arXiv:2302.13455
 License: CC BY-NC-SA 4.0
 Encoding: UTF-8
