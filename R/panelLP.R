@@ -28,7 +28,7 @@
 #'
 #' @references
 #'
-#' Ziwei Mei, Liugang Sheng and Zhentao Shi (2023). "Implicit Nickell Bias in Panel Local Projection"
+#' Ziwei Mei, Liugang Sheng and Zhentao Shi (2025). "Nickell Bias in Panel Local Projection: Financial Crises Are Worse Than You Think", Journal of International Economics
 #'
 #'
 #' @export
