@@ -3,7 +3,7 @@
 
 This repository hosts an R package that accompanies
 
-* Ziwei Mei, Liugang Sheng, Zhentao Shi (2025), "[Nickell Bias in Panel Local Projection](https://arxiv.org/abs/2302.13455)",  *Journal of International Economics*. _arxiv:2302.13455_.
+* Ziwei Mei, Liugang Sheng, Zhentao Shi (2025), "[Nickell Bias in Panel Local Projection: Financial Crises Are Worse Than You Think](https://arxiv.org/abs/2302.13455)",  *Journal of International Economics*. _arxiv:2302.13455_.
 
 This package offers an `R` function to implement the panel local projection that includes two methods: 
 
@@ -15,12 +15,12 @@ devtools::install_github("zhentaoshi/panel-local-projection")
 library("pLP")
 
 example(panelLP) # test installation
-`` 
+```
 
 
 ### Contributors 
 
-Ziwei Mei, Zhentao Shi, and Shen Shu
+Ziwei Mei, Shu Shen, Mengjie Shi, and Zhentao Shi
 
 
 ### License
