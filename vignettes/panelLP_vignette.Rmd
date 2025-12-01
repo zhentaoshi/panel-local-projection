@@ -1,0 +1,466 @@
+---
+title: "Panel Local Projections with FE and SPJ Estimators"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Panel Local Projections with FE and SPJ Estimators}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r setup}
+library(pLP)
+library(ggplot2)
+library(knitr)
+```
+## Introduction
+
+This vignette aims to use an empirical apllication to illustrate two ways of estimating panel local projections using
+the `panelLP()` function from the **pLP** package. The package implements two estimators:
+
+### 1. Fixed Effects (FE) estimator
+
+The conventional estimator widely used in panel macroeconomics and empirical research. However, FE suffers from the *Nickell bias*, which remains asymptotically biased when the number
+of cross-sectional units \(N\) and the time periods \(T\) are both large, despite the absence of the lagged dependent variable. As a result, standard inference procedures based on t-statistics become unreliable.
+
+### 2. Split-Panel Jackknife (SPJ) estimator
+
+SPJ is an unbiased estimator that eliminates the asymptotic *Nickell bias*, providing valid statistical inference. It not only allows researchers to focus on the predictive regressions of \(y_{i,t+h}\) on \(x_t\), but also provides a unified regression framework that accommodates a wide range of model specifications, including different lag orders and control variable.
+
+
+## Real data example
+We illustrate the use of the package with the first empirical application in our paper, *Nickell Bias in Panel Local Projection: Financial Crises Are Worse Than You Think*. The analysis uses the dataset from the official replication package of **Romer and Romer (2017)** (RR). The dataset is semi-annual and contains an unbalanced panel of 24 OECD countries from 1967 to 2012. It includes the dependent variables log real GDP (LNGDP) and the unemployment rate (UNEMP), along with the crisis regressor (CRISIS) and its corresponding lags and forecast horizon 
+. We demonstrate two ways to estimate panel local projections
+using the `panelLP()` function from the **pLP** package.
+
+### 1. Manual horizon-by-horizon LPs
+
+* Users supplies all pre-computed variables such as \(y_{t+h}\), lags of \(y_t\) and lags of \(x_t\).
+* Set `H = 0`, `lagX = 0`, `lagY = 0`.
+* Run `panelLP()` separately for each horizon.
+
+#### 1.1 Code
+```{r}
+# Clearing
+rm(list=ls())
+
+# ><><><><><><><><><><><><><><><>< GDP ><><><><><><><><><><><><><><><><
+
+# Load the dataset.
+data <- read.csv(system.file("extdata", "empirical_RR_f4_lngdp_1980_yx.csv", package = "pLP"))
+
+# Define the shock variable.
+X.name = c("CRISIS")
+# Define the control variables.
+c.name = c("l1LNGDP", "l2LNGDP", "l3LNGDP", "l4LNGDP", "l1CRISIS", "l2CRISIS", "l3CRISIS", "l4CRISIS")
+# Define the outcome variables for each horizon.
+Y.names <- c("f0LNGDP", "f1LNGDP", "f2LNGDP", "f3LNGDP", "f4LNGDP", "f5LNGDP", "f6LNGDP", "f7LNGDP", "f8LNGDP", "f9LNGDP", "f10LNGDP")
+
+# Create empty matrices to store results for IRF and se.
+IRF.FE.GDP <- matrix(NA, length(Y.names), length(X.name))
+se.FE.GDP <- matrix(NA, length(Y.names), length(X.name))
+IRF.SPJ.GDP <- matrix(NA, length(Y.names), length(X.name))
+se.SPJ.GDP <- matrix(NA, length(Y.names), length(X.name))
+
+# Loop through each outcome variable (horizon).
+for (iname in 1:length(Y.names)){
+  Y.name <- Y.names[iname]
+
+  # Run FE estimation.
+  fit.FE <- panelLP(data,
+                    Y.name = Y.name,
+                    X.name = X.name,
+                    c.name = c.name,
+                    id.name = NULL,
+                    time.name = NULL,
+                    method = "FE",
+                    te = T,
+                    lagX = NULL,
+                    lagY = NULL,
+                    H=0)
+  # Store the FE results.
+  IRF.FE.GDP[iname,] <-  fit.FE$IRF
+  se.FE.GDP[iname,] <-  fit.FE$se
+  
+  # Run SPJ estimation.
+  fit.SPJ <- panelLP(data,
+                     Y.name = Y.name,
+                     X.name = X.name,
+                     c.name = c.name,
+                     id.name = NULL,
+                     time.name = NULL,
+                     method = "SPJ",
+                     te = T,
+                     lagX = NULL,
+                     lagY = NULL,
+                     H=0)
+  # Store the SPJ results.
+  IRF.SPJ.GDP[iname,] <-  fit.SPJ$IRF
+  se.SPJ.GDP[iname,] <-  fit.SPJ$se
+}
+
+# ><><><><><><><><><><><><><>< unemployment ><><><><><><><><><><><><><><
+# Load the dataset.
+data <- read.csv(system.file("extdata", "empirical_RR_f4_lnunemp_1980_yx.csv", package = "pLP"))
+
+
+# Define the shock variable.
+X.name = c("CRISIS")
+# Define the control variables.
+c.name = c("l1UNEMP", "l2UNEMP", "l3UNEMP", "l4UNEMP", "l1CRISIS", "l2CRISIS", "l3CRISIS", "l4CRISIS")
+# Define the outcome variables for each horizon.
+Y.names <- c("f0UNEMP", "f1UNEMP", "f2UNEMP", "f3UNEMP", "f4UNEMP", "f5UNEMP", "f6UNEMP", "f7UNEMP", "f8UNEMP", "f9UNEMP", "f10UNEMP")
+
+# Create empty matrices to store results for IRF and se.
+IRF.FE.UNEMP <- matrix(NA, length(Y.names), length(X.name))
+se.FE.UNEMP <- matrix(NA, length(Y.names), length(X.name))
+IRF.SPJ.UNEMP <- matrix(NA, length(Y.names), length(X.name))
+se.SPJ.UNEMP <- matrix(NA, length(Y.names), length(X.name))
+
+# Loop through each outcome variable (horizon).
+for (iname in 1:length(Y.names)){
+  Y.name <- Y.names[iname]
+
+  # Run FE estimation.
+  fit.FE <- panelLP(data,
+                    Y.name = Y.name,
+                    X.name = X.name,
+                    c.name = c.name,
+                    id.name = NULL,
+                    time.name = NULL,
+                    method = "FE",
+                    te = T,
+                    lagX = NULL,
+                    lagY = NULL,
+                    H=0)
+  # Store the FE results.
+  IRF.FE.UNEMP[iname,] <-  fit.FE$IRF
+  se.FE.UNEMP[iname,] <-  fit.FE$se
+  
+  # Run SPJ estimation.
+  fit.SPJ <- panelLP(data,
+                    Y.name = Y.name,
+                    X.name = X.name,
+                    c.name = c.name,
+                    id.name = NULL,
+                    time.name = NULL,
+                    method = "SPJ",
+                    te = T,
+                    lagX = NULL,
+                    lagY = NULL,
+                    H=0)
+  # Store the SPJ results.
+  IRF.SPJ.UNEMP[iname,] <-  fit.SPJ$IRF
+  se.SPJ.UNEMP[iname,] <-  fit.SPJ$se
+}
+
+```
+
+#### 1.2 Impulse response and standard errors
+```{r}
+# GDP table
+results_GDP <- data.frame(
+  horizon = 0:(nrow(IRF.FE.GDP)-1),
+  FE_IRF    = as.numeric(IRF.FE.GDP),
+  FE_se     = as.numeric(se.FE.GDP),
+  SPJ_IRF   = as.numeric(IRF.SPJ.GDP),
+  SPJ_se    = as.numeric(se.SPJ.GDP)
+)
+
+# UNEMP table
+results_UNEMP <- data.frame(
+  horizon = 0:(nrow(IRF.FE.UNEMP)-1),
+  FE_IRF    = as.numeric(IRF.FE.UNEMP),
+  FE_se     = as.numeric(se.FE.UNEMP),
+  SPJ_IRF   = as.numeric(IRF.SPJ.UNEMP),
+  SPJ_se    = as.numeric(se.SPJ.UNEMP)
+)
+
+# Display both tables
+kable(results_GDP, digits = 4, caption = "Impulse Responses and Standard Errors: Real GDP")
+kable(results_UNEMP, digits = 4, caption = "Impulse Responses and Standard Errors: Unemployment")
+```
+
+#### 1.3 Visualize
+```{r, fig.width=8, fig.height=4}
+# =====================================================================
+# 1. Prepare plotting matrices for GDP and UNEMP
+# =====================================================================
+prepare_plot_mat <- function(IRF, se) {
+  low  <- IRF - 1.96*se
+  high <- IRF + 1.96*se
+  cbind(low, IRF, high)
+}
+
+# GDP
+plot.mat.FE.GDP      <- prepare_plot_mat(IRF.FE.GDP, se.FE.GDP)
+plot.mat.SPJ.GDP     <- prepare_plot_mat(IRF.SPJ.GDP, se.SPJ.GDP)
+
+# UNEMP
+plot.mat.FE.UNEMP    <- prepare_plot_mat(IRF.FE.UNEMP, se.FE.UNEMP)
+plot.mat.SPJ.UNEMP   <- prepare_plot_mat(IRF.SPJ.UNEMP, se.SPJ.UNEMP)
+
+H_GDP    <- nrow(IRF.FE.GDP)-1
+h_GDP    <- 0:H_GDP
+H_UNEMP  <- nrow(IRF.FE.UNEMP)-1
+h_UNEMP  <- 0:H_UNEMP
+
+# =====================================================================
+# 2. Reusable IRF plotting function
+# =====================================================================
+draw_irf <- function(h, plot.FE, plot.SPJ, ylab = "") {
+  fe     <- plot.FE[,2]
+  fe_l   <- plot.FE[,1]
+  fe_u   <- plot.FE[,3]
+  
+  spj    <- plot.SPJ[,2]
+  spj_l  <- plot.SPJ[,1]
+  spj_u  <- plot.SPJ[,3]
+  
+  ymin <- min(fe_l, spj_l) * 1.1
+  ymax <- max(fe_u, spj_u) * 1.1
+  
+  plot(h, fe, type = "n",
+       ylim = c(ymin, ymax),
+       xlab = "Years after shock", ylab = ylab, xaxt = "n")
+  axis(1, at = h)
+  
+  # CI bands
+  polygon(c(h, rev(h)), c(fe_u, rev(fe_l)),  col = rgb(0,0,1,0.15),  border = NA)
+  polygon(c(h, rev(h)), c(spj_u, rev(spj_l)), col = rgb(1,0,0,0.15), border = NA)
+  
+  # lines
+  lines(h, fe,  col = "blue",       lwd = 2.5)
+  lines(h, spj, col = "firebrick3", lwd = 2.5)
+  
+  # zero line
+  abline(h = 0, lty = 2, col = "gray50")
+  grid(col = "gray80")
+  
+  legend("topright",
+         legend = c("FE", "SPJ"),
+         col = c("blue","firebrick3"),
+         lwd = 2, bty = "n")
+}
+
+# =====================================================================
+# 3. Plot GDP and UNEMP side by side
+# =====================================================================
+par(mfrow = c(1,2), family = "serif", mar = c(4.5,4.5,2,2), cex = 1.2)
+draw_irf(h_GDP, plot.mat.FE.GDP, plot.mat.SPJ.GDP, ylab = "Real GDP")
+draw_irf(h_UNEMP, plot.mat.FE.UNEMP, plot.mat.SPJ.UNEMP, ylab = "Unemployment")
+
+
+
+```
+
+### 2. Automatic multi-horizon LPs
+* Users supply only current outcome \(y_t\) and current shock variable \(x_t\) and let `panelLP()` automatically construct future \(y_{t+h}\) for all horizons as well as lags up to `lagX`, `lagY`. 
+* Set `H = 10`, `lagX = 4`, `lagY = 4`.
+* Run `panelLP()` once.
+
+#### 2.1 Code
+```{r}
+# Clearing
+rm(list=ls())
+
+# ><><><><><><><><><><><><><><><>< GDP ><><><><><><><><><><><><><><><><
+
+# Load the dataset
+data <- read.csv(system.file("extdata", "empirical_RR_f4_lngdp_1980_yx.csv", package = "pLP"))
+
+# Define variables
+X.name <- c("CRISIS")
+c.name <- NULL
+Y.name <- c("f0LNGDP")
+H <- 10
+h.seq <- 0:H
+
+# Create empty matrices for GDP
+IRF.FE.GDP        <- matrix(NA, length(h.seq), length(X.name))
+se.FE.GDP         <- matrix(NA, length(h.seq), length(X.name))
+IRF.SPJ.GDP       <- matrix(NA, length(h.seq), length(X.name))
+se.SPJ.GDP        <- matrix(NA, length(h.seq), length(X.name))
+
+# Run FE estimation for GDP
+fit.FE <- panelLP(data,
+                  Y.name = Y.name,
+                  X.name = X.name,
+                  c.name = c.name,
+                  id.name = NULL,
+                  time.name = NULL,
+                  method = "FE",
+                  te = TRUE,
+                  lagX = 4,
+                  lagY = 4,
+                  H = H)
+IRF.FE.GDP <- fit.FE$IRF
+se.FE.GDP  <- fit.FE$se
+
+# Run SPJ estimation for GDP
+fit.SPJ <- panelLP(data,
+                   Y.name = Y.name,
+                   X.name = X.name,
+                   c.name = c.name,
+                   id.name = NULL,
+                   time.name = NULL,
+                   method = "SPJ",
+                   te = TRUE,
+                   lagX = 4,
+                   lagY = 4,
+                   H = H)
+IRF.SPJ.GDP <- fit.SPJ$IRF
+se.SPJ.GDP  <- fit.SPJ$se
+
+
+# ><><><><><><><><><><><><><><><>< UNEMPLOYMENT ><><><><><><><><><><><><><
+
+# Load the dataset
+data <- read.csv(system.file("extdata", "empirical_RR_f4_lnunemp_1980_yx.csv", package = "pLP"))
+
+# Define variables
+X.name <- c("CRISIS")
+c.name <- NULL
+Y.name <- c("f0UNEMP")
+H <- 10
+h.seq <- 0:H
+
+# Create empty matrices for UNEMP
+IRF.FE.UNEMP        <- matrix(NA, length(h.seq), length(X.name))
+se.FE.UNEMP         <- matrix(NA, length(h.seq), length(X.name))
+IRF.SPJ.UNEMP       <- matrix(NA, length(h.seq), length(X.name))
+se.SPJ.UNEMP        <- matrix(NA, length(h.seq), length(X.name))
+
+# Run FE estimation for UNEMP
+fit.FE <- panelLP(data,
+                  Y.name = Y.name,
+                  X.name = X.name,
+                  c.name = c.name,
+                  id.name = NULL,
+                  time.name = NULL,
+                  method = "FE",
+                  te = TRUE,
+                  lagX = 4,
+                  lagY = 4,
+                  H = H)
+IRF.FE.UNEMP <- fit.FE$IRF
+se.FE.UNEMP  <- fit.FE$se
+
+# Run SPJ estimation for UNEMP
+fit.SPJ <- panelLP(data,
+                   Y.name = Y.name,
+                   X.name = X.name,
+                   c.name = c.name,
+                   id.name = NULL,
+                   time.name = NULL,
+                   method = "SPJ",
+                   te = TRUE,
+                   lagX = 4,
+                   lagY = 4,
+                   H = H)
+IRF.SPJ.UNEMP <- fit.SPJ$IRF
+se.SPJ.UNEMP  <- fit.SPJ$se
+
+```
+
+#### 2.2 Impulse response and standard errors
+```{r}
+# ----------------- GDP table -----------------
+results_GDP <- data.frame(
+  horizon   = 0:(nrow(IRF.FE.GDP)-1),
+  FE_IRF    = as.numeric(IRF.FE.GDP),
+  FE_se     = as.numeric(se.FE.GDP),
+  SPJ_IRF   = as.numeric(IRF.SPJ.GDP),
+  SPJ_se    = as.numeric(se.SPJ.GDP)
+)
+
+# ----------------- UNEMP table -----------------
+results_UNEMP <- data.frame(
+  horizon   = 0:(nrow(IRF.FE.UNEMP)-1),
+  FE_IRF    = as.numeric(IRF.FE.UNEMP),
+  FE_se     = as.numeric(se.FE.UNEMP),
+  SPJ_IRF   = as.numeric(IRF.SPJ.UNEMP),
+  SPJ_se    = as.numeric(se.SPJ.UNEMP)
+)
+
+kable(results_GDP, digits = 4, caption = "Comparison of FE/SPJ Impulse Responses and Standard Errors: Real GDP")
+kable(results_UNEMP, digits = 4, caption = "Comparison of FE/SPJ Impulse Responses and Standard Errors: Unemployment")
+
+```
+
+
+#### 2.3 Visualize
+```{r, fig.width=8, fig.height=4}
+# =====================================================================
+# 1. Prepare plotting matrices for GDP and UNEMP
+# =====================================================================
+prepare_plot_mat <- function(IRF, se) {
+  low  <- IRF - 1.96*se
+  high <- IRF + 1.96*se
+  cbind(low, IRF, high)
+}
+
+# GDP
+plot.mat.FE.GDP    <- prepare_plot_mat(IRF.FE.GDP, se.FE.GDP)
+plot.mat.SPJ.GDP   <- prepare_plot_mat(IRF.SPJ.GDP, se.SPJ.GDP)
+
+# UNEMP
+plot.mat.FE.UNEMP  <- prepare_plot_mat(IRF.FE.UNEMP, se.FE.UNEMP)
+plot.mat.SPJ.UNEMP <- prepare_plot_mat(IRF.SPJ.UNEMP, se.SPJ.UNEMP)
+
+h.GDP    <- 0:H
+h.UNEMP  <- 0:H
+
+# =====================================================================
+# 2. Reusable IRF plotting function
+# =====================================================================
+draw_irf <- function(h, plot.FE, plot.SPJ, ylab = "") {
+  fe   <- plot.FE[,2]; fe_l <- plot.FE[,1]; fe_u <- plot.FE[,3]
+  spj  <- plot.SPJ[,2]; spj_l <- plot.SPJ[,1]; spj_u <- plot.SPJ[,3]
+  
+  ymin <- min(fe_l, spj_l) * 1.1
+  ymax <- max(fe_u, spj_u) * 1.1
+  
+  plot(h, fe, type = "n",
+       ylim = c(ymin, ymax),
+       xlab = "Years after shock", ylab = ylab, xaxt = "n")
+  axis(1, at = h)
+  
+  # CI bands
+  polygon(c(h, rev(h)), c(fe_u, rev(fe_l)), col = rgb(0,0,1,0.15), border = NA)
+  polygon(c(h, rev(h)), c(spj_u, rev(spj_l)), col = rgb(1,0,0,0.15), border = NA)
+  
+  # Lines
+  lines(h, fe,  col = "blue", lwd = 2.5)
+  lines(h, spj, col = "firebrick3", lwd = 2.5)
+  
+  # Zero line
+  abline(h = 0, lty = 2, col = "gray50")
+  grid(col = "gray80")
+  
+  legend("topright",
+         legend = c("FE", "SPJ"),
+         col = c("blue","firebrick3"),
+         lwd = 2, bty = "n")
+}
+
+# =====================================================================
+# 3. Plot GDP and UNEMP side by side
+# =====================================================================
+par(mfrow = c(1,2), family = "serif", mar = c(4.5,4.5,2,2), cex = 1.2)
+draw_irf(h.GDP, plot.mat.FE.GDP, plot.mat.SPJ.GDP, ylab = "Real GDP")
+draw_irf(h.UNEMP, plot.mat.FE.UNEMP, plot.mat.SPJ.UNEMP, ylab = "Unemployment")
+
+```
+
+## Conclusion
+
+Regardless of which implementation is used, the two approaches yield identical results. Therefore, users are free to choose the method that best fits their own  dataset structure.
+
+
