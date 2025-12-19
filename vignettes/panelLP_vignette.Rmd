@@ -1,55 +1,99 @@
 ---
 title: "Panel Local Projections with FE and SPJ Estimators"
-output: rmarkdown::html_vignette
+output: rmarkdown::html_vignette #pdf_document #rmarkdown::html_vignette
 vignette: >
   %\VignetteIndexEntry{Panel Local Projections with FE and SPJ Estimators}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
-
-```{r, include = FALSE}
+## 1. Required Packages and Plotting Functions
+```{r setup}
 knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>"
 )
-```
-
-```{r setup}
 library(pLP)
 library(ggplot2)
 library(knitr)
+
+# =====================================================================
+# Calculate 95% confidence intervals
+# =====================================================================
+prepare_plot_mat <- function(IRF, se) {
+  low  <- IRF - 1.96*se
+  high <- IRF + 1.96*se
+  cbind(low, IRF, high)
+}
+
+# =====================================================================
+# IRF plotting function, the blue solid line and shaded area represent the FE impulse response and its 95% confidence interval, while the red solid line and shaded area represent the SPJ impulse response and its 95% confidence interval
+# =====================================================================
+draw_irf <- function(h, plot.FE, plot.SPJ, ylab = "") {
+  fe     <- plot.FE[,2]
+  fe_l   <- plot.FE[,1]
+  fe_u   <- plot.FE[,3]
+  
+  spj    <- plot.SPJ[,2]
+  spj_l  <- plot.SPJ[,1]
+  spj_u  <- plot.SPJ[,3]
+  
+  ymin <- min(fe_l, spj_l) * 1.1
+  ymax <- max(fe_u, spj_u) * 1.1
+  
+  plot(h, fe, type = "n",
+       ylim = c(ymin, ymax),
+       xlab = "Years after shock", ylab = ylab, xaxt = "n")
+  axis(1, at = h)
+  
+  # CI bands
+  polygon(c(h, rev(h)), c(fe_u, rev(fe_l)),  col = rgb(0,0,1,0.15),  border = NA)
+  polygon(c(h, rev(h)), c(spj_u, rev(spj_l)), col = rgb(1,0,0,0.15), border = NA)
+  
+  # lines
+  lines(h, fe,  col = "blue",       lwd = 2.5)
+  lines(h, spj, col = "firebrick3", lwd = 2.5)
+  
+  # zero line
+  abline(h = 0, lty = 2, col = "gray50")
+  grid(col = "gray80")
+  
+  legend("topright",
+         legend = c("FE", "SPJ"),
+         col = c("blue","firebrick3"),
+         lwd = 2, bty = "n")
+}
+
 ```
-## Introduction
 
-This vignette aims to use an empirical apllication to illustrate two ways of estimating panel local projections using
-the `panelLP()` function from the **pLP** package. The package implements two estimators:
+## 2. Introduction
 
-### 1. Fixed Effects (FE) estimator
+This vignette illustrates two approaches to estimating panel local projections using the `panelLP()` function from the **pLP** package, based on the four empirical applications in the paper, *Nickell Bias in Panel Local Projection: Financial Crises Are Worse Than You Think*. The package implements two estimators:
+
+### (i). Fixed Effects (FE) estimator
 
 The conventional estimator widely used in panel macroeconomics and empirical research. However, FE suffers from the *Nickell bias*, which remains asymptotically biased when the number
 of cross-sectional units \(N\) and the time periods \(T\) are both large, despite the absence of the lagged dependent variable. As a result, standard inference procedures based on t-statistics become unreliable.
 
-### 2. Split-Panel Jackknife (SPJ) estimator
+### (ii). Split-Panel Jackknife (SPJ) estimator
 
 SPJ is an unbiased estimator that eliminates the asymptotic *Nickell bias*, providing valid statistical inference. It not only allows researchers to focus on the predictive regressions of \(y_{i,t+h}\) on \(x_t\), but also provides a unified regression framework that accommodates a wide range of model specifications, including different lag orders and control variable.
 
 
-## Real data example
-We illustrate the use of the package with the first empirical application in our paper, *Nickell Bias in Panel Local Projection: Financial Crises Are Worse Than You Think*. The analysis uses the dataset from the official replication package of **Romer and Romer (2017)** (RR). The dataset is semi-annual and contains an unbalanced panel of 24 OECD countries from 1967 to 2012. It includes the dependent variables log real GDP (LNGDP) and the unemployment rate (UNEMP), along with the crisis regressor (CRISIS) and its corresponding lags and forecast horizon 
-. We demonstrate two ways to estimate panel local projections
-using the `panelLP()` function from the **pLP** package.
+## 3. Real data example
+We illustrate two ways of using the `panelLP()` function with the real data example. In the first approach, all variables are manually specified, including the appropriate lags and different horizons `h`. In the second approach, only the contemporaneous regressors and dependent variables are provided, together with the required values of lag orders `lagX`, `lagY` and horizon `H`; the function then constructs the necessary leads and lags automatically. Under both approaches, additional control variables—beyond the leads and lags of the dependent and explanatory variables—must be specified manually.
 
-### 1. Manual horizon-by-horizon LPs
+### 3.1. Financial Distress: Romer and Romer (2017)
+The analysis uses the dataset from the official replication package of **Romer and Romer (2017)**. The dataset contains an unbalanced panel of 24 OECD countries from 1967 to 2012. It includes the dependent variables log real GDP (LNGDP) and the unemployment rate (UNEMP), along with the crisis regressor (CRISIS) and its corresponding lags and forecast horizon 
+. 
 
-* Users supplies all pre-computed variables such as \(y_{t+h}\), lags of \(y_t\) and lags of \(x_t\).
+#### 3.1.1. Manual horizon-by-horizon LPs
+
+* Users supply all pre-computed dependent variables at different horizons \(y_{t+h}\) (`f0LNGDP, f1LNGDP, f2LNGDP, f3LNGDP, f4LNGDP, f5LNGDP, f6LNGDP, f7LNGDP, f8LNGDP, f9LNGDP, f10LNGDP, f0UNEMP, f1UNEMP, f2UNEMP, f3UNEMP, f4UNEMP, f5UNEMP, f6UNEMP, f7UNEMP, f8UNEMP, f9UNEMP, f10UNEMP`), the regressor \(x_t\) (`CRISIS`), and control variables consisting of lags of \(y_t\) (`l1LNGDP, l2LNGDP, l3LNGDP, l4LNGDP, l1UNEMP, l2UNEMP, l3UNEMP, l4UNEMP`) and lags of \(x_t\) (`l1CRISIS, l2CRISIS, l3CRISIS, l4CRISIS`).
 * Set `H = 0`, `lagX = 0`, `lagY = 0`.
 * Run `panelLP()` separately for each horizon.
 
-#### 1.1 Code
+##### Code
 ```{r}
-# Clearing
-rm(list=ls())
-
 # ><><><><><><><><><><><><><><><>< GDP ><><><><><><><><><><><><><><><><
 
 # Load the dataset.
@@ -81,6 +125,11 @@ for (iname in 1:length(Y.names)){
                     time.name = NULL,
                     method = "FE",
                     te = T,
+                    cumul = F,
+                    diff = F,
+                    g = 0,
+                    twc = F,
+                    dk = F,
                     lagX = NULL,
                     lagY = NULL,
                     H=0)
@@ -97,6 +146,11 @@ for (iname in 1:length(Y.names)){
                      time.name = NULL,
                      method = "SPJ",
                      te = T,
+                     cumul = F,
+                     diff = F,
+                     g = 0,
+                     twc = F,
+                     dk = F,
                      lagX = NULL,
                      lagY = NULL,
                      H=0)
@@ -136,6 +190,11 @@ for (iname in 1:length(Y.names)){
                     time.name = NULL,
                     method = "FE",
                     te = T,
+                    cumul = F,
+                    diff = F,
+                    g = 0,
+                    twc = F,
+                    dk = F,
                     lagX = NULL,
                     lagY = NULL,
                     H=0)
@@ -152,6 +211,11 @@ for (iname in 1:length(Y.names)){
                     time.name = NULL,
                     method = "SPJ",
                     te = T,
+                    cumul = F,
+                    diff = F,
+                    g = 0,
+                    twc = F,
+                    dk = F,
                     lagX = NULL,
                     lagY = NULL,
                     H=0)
@@ -162,7 +226,7 @@ for (iname in 1:length(Y.names)){
 
 ```
 
-#### 1.2 Impulse response and standard errors
+##### Impulse response and standard errors
 ```{r}
 # GDP table
 results_GDP <- data.frame(
@@ -187,16 +251,9 @@ kable(results_GDP, digits = 4, caption = "Impulse Responses and Standard Errors:
 kable(results_UNEMP, digits = 4, caption = "Impulse Responses and Standard Errors: Unemployment")
 ```
 
-#### 1.3 Visualize
+##### Visualize
 ```{r, fig.width=8, fig.height=4}
-# =====================================================================
-# 1. Prepare plotting matrices for GDP and UNEMP
-# =====================================================================
-prepare_plot_mat <- function(IRF, se) {
-  low  <- IRF - 1.96*se
-  high <- IRF + 1.96*se
-  cbind(low, IRF, high)
-}
+# 1. Calculate 95% confidence intervals for FE and SPJ results of GDP and UNEMP
 
 # GDP
 plot.mat.FE.GDP      <- prepare_plot_mat(IRF.FE.GDP, se.FE.GDP)
@@ -212,64 +269,21 @@ H_UNEMP  <- nrow(IRF.FE.UNEMP)-1
 h_UNEMP  <- 0:H_UNEMP
 
 # =====================================================================
-# 2. Reusable IRF plotting function
+# 2. Plot GDP and UNEMP side by side
 # =====================================================================
-draw_irf <- function(h, plot.FE, plot.SPJ, ylab = "") {
-  fe     <- plot.FE[,2]
-  fe_l   <- plot.FE[,1]
-  fe_u   <- plot.FE[,3]
-  
-  spj    <- plot.SPJ[,2]
-  spj_l  <- plot.SPJ[,1]
-  spj_u  <- plot.SPJ[,3]
-  
-  ymin <- min(fe_l, spj_l) * 1.1
-  ymax <- max(fe_u, spj_u) * 1.1
-  
-  plot(h, fe, type = "n",
-       ylim = c(ymin, ymax),
-       xlab = "Years after shock", ylab = ylab, xaxt = "n")
-  axis(1, at = h)
-  
-  # CI bands
-  polygon(c(h, rev(h)), c(fe_u, rev(fe_l)),  col = rgb(0,0,1,0.15),  border = NA)
-  polygon(c(h, rev(h)), c(spj_u, rev(spj_l)), col = rgb(1,0,0,0.15), border = NA)
-  
-  # lines
-  lines(h, fe,  col = "blue",       lwd = 2.5)
-  lines(h, spj, col = "firebrick3", lwd = 2.5)
-  
-  # zero line
-  abline(h = 0, lty = 2, col = "gray50")
-  grid(col = "gray80")
-  
-  legend("topright",
-         legend = c("FE", "SPJ"),
-         col = c("blue","firebrick3"),
-         lwd = 2, bty = "n")
-}
-
-# =====================================================================
-# 3. Plot GDP and UNEMP side by side
-# =====================================================================
-par(mfrow = c(1,2), family = "serif", mar = c(4.5,4.5,2,2), cex = 1.2)
+par(mfrow = c(1,2), family = "serif", mar = c(4,4,1,1), cex = 0.8)
 draw_irf(h_GDP, plot.mat.FE.GDP, plot.mat.SPJ.GDP, ylab = "Real GDP")
 draw_irf(h_UNEMP, plot.mat.FE.UNEMP, plot.mat.SPJ.UNEMP, ylab = "Unemployment")
 
-
-
 ```
 
-### 2. Automatic multi-horizon LPs
-* Users supply only current outcome \(y_t\) and current shock variable \(x_t\) and let `panelLP()` automatically construct future \(y_{t+h}\) for all horizons as well as lags up to `lagX`, `lagY`. 
+#### 3.1.2. Automatic multi-horizon LPs
+* Users supply only current outcome \(y_t\) (`f0LNGDP, f0UNEMP`) and current shock variable \(x_t\) (`CRISIS`), and let `panelLP()` automatically construct future \(y_{t+h}\) (`f1LNGDP, f2LNGDP, f3LNGDP, f4LNGDP, f5LNGDP, f6LNGDP, f7LNGDP, f8LNGDP, f9LNGDP, f10LNGDP, f1UNEMP, f2UNEMP, f3UNEMP, f4UNEMP, f5UNEMP, f6UNEMP, f7UNEMP, f8UNEMP, f9UNEMP, f10UNEMP`) for all horizons as well as lags of \(x_{t}\) up to `lagX` (`l1CRISIS, l2CRISIS, l3CRISIS, l4CRISIS`) and lags of \(y_{t}\) up to `lagY` (`l1LNGDP, l2LNGDP, l3LNGDP, l4LNGDP, l1UNEMP, l2UNEMP, l3UNEMP, l4UNEMP`). 
 * Set `H = 10`, `lagX = 4`, `lagY = 4`.
 * Run `panelLP()` once.
 
-#### 2.1 Code
+#####  Code
 ```{r}
-# Clearing
-rm(list=ls())
-
 # ><><><><><><><><><><><><><><><>< GDP ><><><><><><><><><><><><><><><><
 
 # Load the dataset
@@ -296,7 +310,12 @@ fit.FE <- panelLP(data,
                   id.name = NULL,
                   time.name = NULL,
                   method = "FE",
-                  te = TRUE,
+                  te = T,
+                  cumul = F,
+                  diff = F,
+                  g = 0,
+                  twc = F,
+                  dk = F,
                   lagX = 4,
                   lagY = 4,
                   H = H)
@@ -311,7 +330,12 @@ fit.SPJ <- panelLP(data,
                    id.name = NULL,
                    time.name = NULL,
                    method = "SPJ",
-                   te = TRUE,
+                   te = T,
+                   cumul = F,
+                   diff = F,
+                   g = 0,
+                   twc = F,
+                   dk = F,
                    lagX = 4,
                    lagY = 4,
                    H = H)
@@ -345,7 +369,12 @@ fit.FE <- panelLP(data,
                   id.name = NULL,
                   time.name = NULL,
                   method = "FE",
-                  te = TRUE,
+                  te = T,
+                  cumul = F,
+                  diff = F,
+                  g = 0,
+                  twc = F,
+                  dk = F,
                   lagX = 4,
                   lagY = 4,
                   H = H)
@@ -360,7 +389,12 @@ fit.SPJ <- panelLP(data,
                    id.name = NULL,
                    time.name = NULL,
                    method = "SPJ",
-                   te = TRUE,
+                   te = T,
+                   cumul = F,
+                   diff = F,
+                   g = 0,
+                   twc = F,
+                   dk = F,
                    lagX = 4,
                    lagY = 4,
                    H = H)
@@ -369,7 +403,7 @@ se.SPJ.UNEMP  <- fit.SPJ$se
 
 ```
 
-#### 2.2 Impulse response and standard errors
+##### Impulse response and standard errors
 ```{r}
 # ----------------- GDP table -----------------
 results_GDP <- data.frame(
@@ -395,16 +429,9 @@ kable(results_UNEMP, digits = 4, caption = "Comparison of FE/SPJ Impulse Respons
 ```
 
 
-#### 2.3 Visualize
+##### Visualize
 ```{r, fig.width=8, fig.height=4}
-# =====================================================================
-# 1. Prepare plotting matrices for GDP and UNEMP
-# =====================================================================
-prepare_plot_mat <- function(IRF, se) {
-  low  <- IRF - 1.96*se
-  high <- IRF + 1.96*se
-  cbind(low, IRF, high)
-}
+# 1. Calculate 95% confidence intervals for FE and SPJ results of GDP and UNEMP
 
 # GDP
 plot.mat.FE.GDP    <- prepare_plot_mat(IRF.FE.GDP, se.FE.GDP)
@@ -418,49 +445,753 @@ h.GDP    <- 0:H
 h.UNEMP  <- 0:H
 
 # =====================================================================
-# 2. Reusable IRF plotting function
+# 2. Plot GDP and UNEMP side by side
 # =====================================================================
-draw_irf <- function(h, plot.FE, plot.SPJ, ylab = "") {
-  fe   <- plot.FE[,2]; fe_l <- plot.FE[,1]; fe_u <- plot.FE[,3]
-  spj  <- plot.SPJ[,2]; spj_l <- plot.SPJ[,1]; spj_u <- plot.SPJ[,3]
-  
-  ymin <- min(fe_l, spj_l) * 1.1
-  ymax <- max(fe_u, spj_u) * 1.1
-  
-  plot(h, fe, type = "n",
-       ylim = c(ymin, ymax),
-       xlab = "Years after shock", ylab = ylab, xaxt = "n")
-  axis(1, at = h)
-  
-  # CI bands
-  polygon(c(h, rev(h)), c(fe_u, rev(fe_l)), col = rgb(0,0,1,0.15), border = NA)
-  polygon(c(h, rev(h)), c(spj_u, rev(spj_l)), col = rgb(1,0,0,0.15), border = NA)
-  
-  # Lines
-  lines(h, fe,  col = "blue", lwd = 2.5)
-  lines(h, spj, col = "firebrick3", lwd = 2.5)
-  
-  # Zero line
-  abline(h = 0, lty = 2, col = "gray50")
-  grid(col = "gray80")
-  
-  legend("topright",
-         legend = c("FE", "SPJ"),
-         col = c("blue","firebrick3"),
-         lwd = 2, bty = "n")
-}
-
-# =====================================================================
-# 3. Plot GDP and UNEMP side by side
-# =====================================================================
-par(mfrow = c(1,2), family = "serif", mar = c(4.5,4.5,2,2), cex = 1.2)
+par(mfrow = c(1,2), family = "serif", mar = c(4,4,1,1), cex = 0.8)
 draw_irf(h.GDP, plot.mat.FE.GDP, plot.mat.SPJ.GDP, ylab = "Real GDP")
 draw_irf(h.UNEMP, plot.mat.FE.UNEMP, plot.mat.SPJ.UNEMP, ylab = "Unemployment")
 
 ```
 
-## Conclusion
+### 3.2. Banking Crises: Baron, Verner, and Xiong (2021)
+Baron, Verner, and Xiong (2021) study the aggregate output losses associated with
+banking crises. A banking crisis is defined as a bank equity crash of more than 30 percent. The dataset constructs a set of bank equity return for 46 advanced and
+emerging economies over 1870–2016. It includes the dependent variable the change in the logarithm of real
+GDP, and as key regressors indicators of bank equity crashes and nonfinancial equity crashes. In addition, the dataset includes contemporaneous and up to three-year lagged real GDP growth and changes in the credit-to-GDP ratio.
 
-Regardless of which implementation is used, the two approaches yield identical results. Therefore, users are free to choose the method that best fits their own  dataset structure.
+
+#### 3.2.1 Manual
+* Users supply all pre-computed dependent variables at different horizons \(y_{t+h}-y_{t}\) (`Fd1y, Fd2y, Fd3y, Fd4y, Fd5y, Fd6y`), the two contemporaneous regressors \(x_t\) (`R_B, R_N`), and control variables, which include lags of real GDP growth (`D1y, L1D1y, L2D1y, L3D1y`), lags of changes in the credit-to-GDP ratio (`D1d_y, L1D1d_y, L2D1d_y, L3D1d_y`) and lags of \(x_t\) (`L1R_B, L2R_B, L3R_B, L1R_N, L2R_N, L3R_N`).
+* Set `H = 0`, `lagX = 0`, `lagY = 0`, `twc = T`(the two-way clustered standard error is used to address cross-sectional correlations in panel data).
+* Run `panelLP()` separately for each horizon.
+
+##### Code
+```{r}
+# Load the dataset.
+data <- read.csv(system.file("extdata", "BVX_annual_auto.csv", package = "pLP"))
+
+# Define the shock variable.
+X.name = c("R_B","R_N")#c("C_B30","C_N30")#c("R_B","R_N")
+# Define the control variables.
+c.name = c("L1R_B","L2R_B","L3R_B","L1R_N","L2R_N","L3R_N","D1y","L1D1y","L2D1y","L3D1y","D1d_y","L1D1d_y","L2D1d_y","L3D1d_y")
+# Define the outcome variables for each horizon.
+Y.names <- c("Fd1y","Fd2y","Fd3y","Fd4y","Fd5y","Fd6y")
+
+# Create empty matrices to store results for IRF and se.
+IRF.FE <- rbind(0,matrix(NA,length(Y.names),length(X.name)))
+se.FE <- rbind(0,matrix(NA,length(Y.names),length(X.name)))
+IRF.jackknife <- rbind(0,matrix(NA,length(Y.names),length(X.name)))
+se.jackknife <- rbind(0,matrix(NA,length(Y.names),length(X.name)))
+
+# Loop through each outcome variable (horizon).
+for (iname in 1:length(Y.names)){
+  Y.name <- Y.names[iname]
+  data[,Y.name]=100*data[,Y.name]
+
+  # Run FE estimation.
+  fit.FE<- panelLP(data,
+                   Y.name = Y.name,
+                   X.name = X.name,
+                   c.name = c.name,
+                   id.name = NULL,
+                   time.name = NULL,
+                   method = "FE",
+                   te = F,
+                   cumul = F,
+                   diff = F,
+                   g = 0,
+                   twc = T,
+                   dk = F,
+                   lagX = NULL,
+                   lagY = NULL,
+                   H=0)
+  # Store the FE results.
+  IRF.FE[iname+1,] <-  fit.FE$IRF
+  se.FE[iname+1,] <-  fit.FE$se
+  
+  # Run SPJ estimation.
+  fit.jackknife <- panelLP(data,
+                   Y.name = Y.name,
+                   X.name = X.name,
+                   c.name = c.name,
+                   id.name = NULL,
+                   time.name = NULL,
+                   method = "SPJ",
+                   te = F,
+                   cumul = F,
+                   diff = F,
+                   g = 0,
+                   twc = T,
+                   dk = F,
+                   lagX = NULL,
+                   lagY = NULL,
+                   H=0)
+  # Store the SPJ results.
+  IRF.jackknife[iname+1,] <-  fit.jackknife$IRF
+  se.jackknife[iname+1,] <-  fit.jackknife$se
+}
+
+```
+
+##### Impulse response and standard errors
+```{r}
+# ----------------- Bank Equity Crash table -----------------
+results_BANK <- data.frame(
+  horizon        = 0:(nrow(IRF.FE) - 1),
+  FE_IRF         = as.numeric(IRF.FE[,1]),
+  FE_se          = as.numeric(se.FE[,1]),
+  SPJ_IRF  = as.numeric(IRF.jackknife[,1]),
+  SPJ_se   = as.numeric(se.jackknife[,1])
+)
+
+# ----------------- Nonfinancial Equity Crash table -----------------
+results_NONFIN <- data.frame(
+  horizon        = 0:(length(IRF.FE[,2]) - 1),
+  FE_IRF         = as.numeric(IRF.FE[,2]),
+  FE_se          = as.numeric(se.FE[,2]),
+  SPJ_IRF  = as.numeric(IRF.jackknife[,2]),
+  SPJ_se   = as.numeric(se.jackknife[,2])
+)
+
+kable(results_BANK,digits  = 4,caption = "Comparison of FE/SPJ Impulse Responses and Standard Errors: Bank Equity Crash")
+kable(results_NONFIN,digits  = 4,caption = "Comparison of FE/SPJ Impulse Responses and Standard Errors: Nonfinancial Equity Crash")
+
+```
+
+##### Visualize
+```{r, fig.width=8, fig.height=4}
+# =========================================================
+# 1. Calculate 95% confidence intervals for FE and Jackknife results
+# =========================================================
+
+# Bank Equity Crash
+plot.mat.FE.BANK  <- prepare_plot_mat(IRF.FE[,1], se.FE[,1])
+plot.mat.SPJ.BANK  <- prepare_plot_mat(IRF.jackknife[,1], se.jackknife[,1])
+plot.mat.FE.BANK[1,] <- 0 # No estimation required when h=0
+plot.mat.SPJ.BANK[1,] <- 0
+
+# Nonfinancial Equity Crash
+plot.mat.FE.NONFIN <- prepare_plot_mat(IRF.FE[,2], se.FE[,2])
+plot.mat.SPJ.NONFIN <- prepare_plot_mat(IRF.jackknife[,2], se.jackknife[,2])
+plot.mat.FE.NONFIN[1,] <- 0 # No estimation required when h=0
+plot.mat.SPJ.NONFIN[1,] <- 0
+
+
+h <- 0:length(Y.names)
+
+# =========================================================
+# 2. Plot two shocks side by side
+# =========================================================
+par(mfrow = c(1, 2),family = "serif",mar = c(4, 4, 1, 1),cex = 0.8)
+draw_irf(h,plot.mat.FE.BANK,plot.mat.SPJ.BANK,ylab = "Bank Equity Crash")
+draw_irf(h,plot.mat.FE.NONFIN,plot.mat.SPJ.NONFIN,ylab = "Nonfinancial Equity Crash")
+```
+
+#### 3.2.2 Automatic multi-horizon LPs
+* Users supply only current outcome (`Fd1y`), where `Fd1y` denotes the change in the logarithm of real GDP from year \(t\) to \(t+1\), and the current shock variables \(x_t\) (`R_B, R_N`), together with additional control variables consisting of lags of changes in the credit-to-GDP ratio (`D1d_y, L1D1d_y, L2D1d_y, L3D1d_y`). The `panelLP()` function then automatically constructs future outcomes \(y_{t+h}-y_{t}\) for all horizons (`Fd2y, Fd3y, Fd4y, Fd5y, Fd6y`), as well as lags of \(x_{t}\) up to `lagX` (`L1R_B, L2R_B, L3R_B, L1R_N, L2R_N, L3R_N`) , lags of `Fd1y` up to `lagY` (`D1y, L1D1y, L2D1y, L3D1y`). 
+* Set `H = 6`, `lagX = 3`, `lagY = 4`, `cumul = T`, `diff = T`, `twc = T`. Here, `cumul = T` indicates that we are interested in the cumulative effect of the dependent variable rather than its level, and `diff = T` means that the input data have already been first-differenced.
+* Run `panelLP()` once.
+
+##### Code
+```{r}
+# Load the dataset.
+data <- read.csv(system.file("extdata", "BVX_annual_auto.csv", package = "pLP"))
+
+# Define the shock variable.
+X.name = c("R_B","R_N")
+# Define the control variables.
+c.name = c("D1d_y","L1D1d_y","L2D1d_y","L3D1d_y")
+# Define the outcome variables for each horizon.
+Y.names <- c("Fd1y")
+H=6
+h.seq=1:6
+# Create empty matrices to store results for IRF and se.
+IRF.FE <- rbind(0,matrix(NA,length(h.seq),length(X.name)))
+se.FE <- rbind(0,matrix(NA,length(h.seq),length(X.name)))
+IRF.jackknife <- rbind(0,matrix(NA,length(h.seq),length(X.name)))
+se.jackknife <- rbind(0,matrix(NA,length(h.seq),length(X.name)))
+
+  data[,Y.names]=100*data[,Y.names]
+
+  # Run FE estimation.
+  fit.FE<- panelLP(data,
+                   Y.name = Y.names,
+                   X.name = X.name,
+                   c.name = c.name,
+                   id.name = NULL,
+                   time.name = NULL,
+                   method = "FE",
+                   te = F,
+                   cumul = T,
+                   diff = T,
+                   g = 0,
+                   twc = T,
+                   dk = F,
+                   lagX = 3,
+                   lagY = 4,
+                   H=6)
+  # Store the FE results.
+  IRF.FE <-  fit.FE$IRF
+  se.FE <-  fit.FE$se
+  
+  # Run SPJ estimation.
+  fit.jackknife <- panelLP(data,
+                   Y.name = Y.names,
+                   X.name = X.name,
+                   c.name = c.name,
+                   id.name = NULL,
+                   time.name = NULL,
+                   method = "SPJ",
+                   te = F,
+                   cumul = T,
+                   diff = T,
+                   g = 0,
+                   twc = T,
+                   dk = F,
+                   lagX = 3,
+                   lagY = 4,
+                   H=6)
+  # Store the SPJ results.
+  IRF.jackknife <-  fit.jackknife$IRF
+  se.jackknife <-  fit.jackknife$se
+
+```
+
+##### Impulse response and standard errors
+```{r}
+# ----------------- Bank Equity Crash table -----------------
+results_BANK <- data.frame(
+  horizon        = 0:(nrow(IRF.FE) - 1),
+  FE_IRF         = as.numeric(IRF.FE[,1]),
+  FE_se          = as.numeric(se.FE[,1]),
+  SPJ_IRF  = as.numeric(IRF.jackknife[,1]),
+  SPJ_se   = as.numeric(se.jackknife[,1])
+)
+results_BANK[1, c("FE_IRF", "FE_se", "SPJ_IRF", "SPJ_se")] <- 0
+
+# ----------------- Nonfinancial Equity Crash table -----------------
+results_NONFIN <- data.frame(
+  horizon        = 0:(length(IRF.FE[,2]) - 1),
+  FE_IRF         = as.numeric(IRF.FE[,2]),
+  FE_se          = as.numeric(se.FE[,2]),
+  SPJ_IRF  = as.numeric(IRF.jackknife[,2]),
+  SPJ_se   = as.numeric(se.jackknife[,2])
+)
+results_NONFIN[1, c("FE_IRF", "FE_se", "SPJ_IRF", "SPJ_se")] <- 0
+
+kable(results_BANK,digits  = 4,caption = "Comparison of FE/SPJ Impulse Responses and Standard Errors: Bank Equity Crash")
+kable(results_NONFIN,digits  = 4,caption = "Comparison of FE/SPJ Impulse Responses and Standard Errors: Nonfinancial Equity Crash")
+
+```
+
+
+##### Visualize
+```{r, fig.width=8, fig.height=4}
+# =========================================================
+# 1. Calculate 95% confidence intervals for FE and Jackknife results
+# =========================================================
+
+# Bank Equity Crash
+plot.mat.FE.BANK  <- prepare_plot_mat(IRF.FE[,1], se.FE[,1])
+plot.mat.SPJ.BANK  <- prepare_plot_mat(IRF.jackknife[,1], se.jackknife[,1])
+plot.mat.FE.BANK[1,] <- 0 # No estimation required when h=0
+plot.mat.SPJ.BANK[1,] <- 0
+
+# Nonfinancial Equity Crash
+plot.mat.FE.NONFIN <- prepare_plot_mat(IRF.FE[,2], se.FE[,2])
+plot.mat.SPJ.NONFIN <- prepare_plot_mat(IRF.jackknife[,2], se.jackknife[,2])
+plot.mat.FE.NONFIN[1,] <- 0 # No estimation required when h=0
+plot.mat.SPJ.NONFIN[1,] <- 0
+
+
+h <- 0:H
+
+# =========================================================
+# 2. Plot two shocks side by side
+# =========================================================
+par(mfrow = c(1, 2),family = "serif",mar = c(4, 4, 1, 1),cex = 0.8)
+draw_irf(h,plot.mat.FE.BANK,plot.mat.SPJ.BANK,ylab = "Bank Equity Crash")
+draw_irf(h,plot.mat.FE.NONFIN,plot.mat.SPJ.NONFIN,ylab = "Nonfinancial Equity Crash")
+```
+
+
+### 3.3. Household Debt: Mian, Sufi, and Verner (2017)
+Mian, Sufi, and Verner (2017) explore the dynamics between
+household debt, nonfinancial firms debt, and economic fluctuations, using a cross-country panel. The dataset collects an unbalanced panel of 30 countries from 1960 to 2012. It includes the logarithm of real GDP as the dependent variable, and the key explanatory variables are the household debt-to-GDP ratio and the nonfinancial firm debt-to-GDP ratio.
+
+#### 3.3.1 Manual
+* Users supply all pre-computed dependent variables at different horizons \(y_{t+h}\) (`F1y, F2y, F3y, F4y, F5y, F6y, F7y, F8y, F9y, F10y`), the two contemporaneous regressors \(x_t\) (`L0HHD_L1GDP, L0NFD_L1GDP`), and control variables, which include contemporaneous and lags of real GDP (`L0y, L1y,L2y, L3y, L4y`), as well as lags of \(x_t\) (`L1HHD_L1GDP, L2HHD_L1GDP, L3HHD_L1GDP, L4HHD_L1GDP, L1NFD_L1GDP, L2NFD_L1GDP, L3NFD_L1GDP, L4NFD_L1GDP`).
+* Set `H = 0`, `lagX = 0`, `lagY = 0`, `twc = T`.
+* Run `panelLP()` separately for each horizon.
+
+##### Code
+```{r}
+# Load the dataset.
+data <- read.csv(system.file("extdata", "empirical_MSV_auto.csv", package = "pLP"))
+
+# Define the shock variable.
+X.name = c("L0HHD_L1GDP","L0NFD_L1GDP")
+# Define the control variables.
+c.name = c("L0y","L1y","L2y","L3y","L4y",
+           "L1HHD_L1GDP","L2HHD_L1GDP","L3HHD_L1GDP","L4HHD_L1GDP",
+           "L1NFD_L1GDP","L2NFD_L1GDP","L3NFD_L1GDP","L4NFD_L1GDP")
+# Define the outcome variables for each horizon.
+Y.names <- c("F1y","F2y","F3y","F4y","F5y","F6y","F7y","F8y","F9y","F10y")
+
+# Create empty matrices to store results for IRF and se.
+IRF.FE <- rbind(0,matrix(NA,length(Y.names),length(X.name)))
+se.FE <- rbind(0,matrix(NA,length(Y.names),length(X.name)))
+IRF.jackknife <- rbind(0,matrix(NA,length(Y.names),length(X.name)))
+se.jackknife <- rbind(0,matrix(NA,length(Y.names),length(X.name)))
+
+# Loop through each outcome variable (horizon).
+for (iname in 1:length(Y.names)){
+  Y.name <- Y.names[iname]
+
+  # Run FE estimation.
+  fit.FE<- panelLP(data,
+                   Y.name = Y.name,
+                   X.name = X.name,
+                   c.name = c.name,
+                   id.name = NULL,
+                   time.name = NULL,
+                   method = "FE",
+                   te = F,
+                   cumul = F,
+                   diff = F,
+                   g = 0,
+                   twc = F,
+                   dk = T,
+                   lagX = NULL,
+                   lagY = NULL,
+                   H=0)
+  # Store the FE results.
+  IRF.FE[iname+1,] <-  fit.FE$IRF
+  se.FE[iname+1,] <-  fit.FE$se
+  
+  # Run SPJ estimation.
+  fit.jackknife <- panelLP(data,
+                   Y.name = Y.name,
+                   X.name = X.name,
+                   c.name = c.name,
+                   id.name = NULL,
+                   time.name = NULL,
+                   method = "SPJ",
+                   te = F,
+                   cumul = F,
+                   diff = F,
+                   g = 0,
+                   twc = T,
+                   dk = F,
+                   lagX = NULL,
+                   lagY = NULL,
+                   H=0)
+  # Store the SPJ results.
+  IRF.jackknife[iname+1,] <-  fit.jackknife$IRF
+  se.jackknife[iname+1,] <-  fit.jackknife$se
+}
+
+```
+
+
+##### Impulse response and standard errors
+```{r}
+# ----------------- Household Debt table -----------------
+results_HOUSE <- data.frame(
+  horizon        = 0:(nrow(IRF.FE) - 1),
+  FE_IRF         = as.numeric(IRF.FE[,1]),
+  FE_se          = as.numeric(se.FE[,1]),
+  SPJ_IRF  = as.numeric(IRF.jackknife[,1]),
+  SPJ_se   = as.numeric(se.jackknife[,1])
+)
+
+# ----------------- Nonfinancial Firm Debt table -----------------
+results_NONFIN <- data.frame(
+  horizon        = 0:(length(IRF.FE[,2]) - 1),
+  FE_IRF         = as.numeric(IRF.FE[,2]),
+  FE_se          = as.numeric(se.FE[,2]),
+  SPJ_IRF  = as.numeric(IRF.jackknife[,2]),
+  SPJ_se   = as.numeric(se.jackknife[,2])
+)
+
+kable(results_HOUSE,digits  = 4,caption = "Comparison of FE/SPJ Impulse Responses and Standard Errors: Household Debt")
+kable(results_NONFIN,digits  = 4,caption = "Comparison of FE/SPJ Impulse Responses and Standard Errors: Nonfinancial Firm Debt")
+
+```
+
+
+##### Visualize
+```{r, fig.width=8, fig.height=4}
+# =========================================================
+# 1. Calculate 95% confidence intervals for FE and Jackknife results
+# =========================================================
+
+# Household Debt
+plot.mat.FE.HOUSE  <- prepare_plot_mat(IRF.FE[,1], se.FE[,1])
+plot.mat.SPJ.HOUSE  <- prepare_plot_mat(IRF.jackknife[,1], se.jackknife[,1])
+plot.mat.FE.HOUSE[1,] <- 0 # No estimation required when h=0
+plot.mat.SPJ.HOUSE[1,] <- 0
+
+# Nonfinancial Firm Debt
+plot.mat.FE.NONFIN <- prepare_plot_mat(IRF.FE[,2], se.FE[,2])
+plot.mat.SPJ.NONFIN <- prepare_plot_mat(IRF.jackknife[,2], se.jackknife[,2])
+plot.mat.FE.NONFIN[1,] <- 0 # No estimation required when h=0
+plot.mat.SPJ.NONFIN[1,] <- 0
+
+
+h <- 0:length(Y.names)
+
+# =========================================================
+# 2. Plot two shocks side by side
+# =========================================================
+par(mfrow = c(1, 2),family = "serif",mar = c(4, 4, 1, 1),cex = 0.8)
+draw_irf(h,plot.mat.FE.HOUSE,plot.mat.SPJ.HOUSE,ylab = "Household Debt")
+draw_irf(h,plot.mat.FE.NONFIN,plot.mat.SPJ.NONFIN,ylab = "Nonfinancial Firm Debt")
+```
+
+
+#### 3.3.2 Automatic multi-horizon LPs
+* Users supply only current outcome \(y_t\) (`L0y`) and the current shock variables \(x_t\) (`L0HHD_L1GDP, L0NFD_L1GDP`), together with additional control variables current outcome (`L0y`). The `panelLP()` function then automatically constructs future outcomes \(y_{t+h}\) for all horizons (`F1y, F2y, F3y, F4y, F5y, F6y, F7y, F8y, F9y, F10y`), as well as lags of \(x_{t}\) up to `lagX` (`L1HHD_L1GDP, L2HHD_L1GDP, L3HHD_L1GDP, L4HHD_L1GDP, L1NFD_L1GDP, L2NFD_L1GDP, L3NFD_L1GDP, L4NFD_L1GDP`) and lags of \(y_{t}\) up to `lagY` (`L1y,L2y, L3y, L4y`). 
+* Set `H = 10`, `lagX = 4`, `lagY = 4`, `twc = T`.
+* Run `panelLP()` once.
+
+##### Code
+```{r}
+# Load the dataset.
+data <- read.csv(system.file("extdata", "empirical_MSV_auto.csv", package = "pLP"))
+
+# Define the shock variable.
+X.name = c("L0HHD_L1GDP","L0NFD_L1GDP")
+# Define the control variables.
+c.name = c("L0y")
+# Define the outcome variables for each horizon.
+Y.name <- c("L0y")
+
+H=10
+h.seq=1:10
+# Create empty matrices to store results for IRF and se.
+IRF.FE <- rbind(0,matrix(NA,length(h.seq),length(X.name)))
+se.FE <- rbind(0,matrix(NA,length(h.seq),length(X.name)))
+IRF.jackknife <- rbind(0,matrix(NA,length(h.seq),length(X.name)))
+se.jackknife <- rbind(0,matrix(NA,length(h.seq),length(X.name)))
+
+  # Run FE estimation.
+  fit.FE<- panelLP(data,
+                   Y.name = Y.name,
+                   X.name = X.name,
+                   c.name = c.name,
+                   id.name = NULL,
+                   time.name = NULL,
+                   method = "FE",
+                   te = F,
+                   cumul = F,
+                   diff = F,
+                   g = 0,
+                   twc = T,
+                   dk = F,
+                   lagX = 4,
+                   lagY = 4,
+                   H=10)
+  # Store the FE results.
+  IRF.FE <-  fit.FE$IRF
+  se.FE <-  fit.FE$se
+  
+  # Run SPJ estimation.
+  fit.jackknife <- panelLP(data,
+                   Y.name = Y.name,
+                   X.name = X.name,
+                   c.name = c.name,
+                   id.name = NULL,
+                   time.name = NULL,
+                   method = "SPJ",
+                   te = F,
+                   cumul = F,
+                   diff = F,
+                   g = 0,
+                   twc = T,
+                   dk = F,
+                   lagX = 4,
+                   lagY = 4,
+                   H=10)
+  # Store the SPJ results.
+  IRF.jackknife <-  fit.jackknife$IRF
+  se.jackknife <-  fit.jackknife$se
+
+```
+
+
+##### Impulse response and standard errors
+```{r}
+# ----------------- Household Debt table -----------------
+results_HOUSE <- data.frame(
+  horizon        = 0:(nrow(IRF.FE) - 1),
+  FE_IRF         = as.numeric(IRF.FE[,1]),
+  FE_se          = as.numeric(se.FE[,1]),
+  SPJ_IRF  = as.numeric(IRF.jackknife[,1]),
+  SPJ_se   = as.numeric(se.jackknife[,1])
+)
+results_HOUSE[1, c("FE_IRF", "FE_se", "SPJ_IRF", "SPJ_se")] <- 0
+
+# ----------------- Nonfinancial Firm Debt table -----------------
+results_NONFIN <- data.frame(
+  horizon        = 0:(length(IRF.FE[,2]) - 1),
+  FE_IRF         = as.numeric(IRF.FE[,2]),
+  FE_se          = as.numeric(se.FE[,2]),
+  SPJ_IRF  = as.numeric(IRF.jackknife[,2]),
+  SPJ_se   = as.numeric(se.jackknife[,2])
+)
+results_NONFIN[1, c("FE_IRF", "FE_se", "SPJ_IRF", "SPJ_se")] <- 0
+
+kable(results_HOUSE,digits  = 4,caption = "Comparison of FE/SPJ Impulse Responses and Standard Errors: Household Debt")
+kable(results_NONFIN,digits  = 4,caption = "Comparison of FE/SPJ Impulse Responses and Standard Errors: Nonfinancial Firm Debt")
+
+```
+
+
+##### Visualize
+```{r, fig.width=8, fig.height=4}
+# =========================================================
+# 1. Calculate 95% confidence intervals for FE and Jackknife results
+# =========================================================
+
+# Household Debt
+plot.mat.FE.HOUSE  <- prepare_plot_mat(IRF.FE[,1], se.FE[,1])
+plot.mat.SPJ.HOUSE  <- prepare_plot_mat(IRF.jackknife[,1], se.jackknife[,1])
+plot.mat.FE.HOUSE[1,] <- 0 # No estimation required when h=0
+plot.mat.SPJ.HOUSE[1,] <- 0
+
+# Nonfinancial Firm Debt
+plot.mat.FE.NONFIN <- prepare_plot_mat(IRF.FE[,2], se.FE[,2])
+plot.mat.SPJ.NONFIN <- prepare_plot_mat(IRF.jackknife[,2], se.jackknife[,2])
+plot.mat.FE.NONFIN[1,] <- 0 # No estimation required when h=0
+plot.mat.SPJ.NONFIN[1,] <- 0
+
+
+h <- 0:H
+
+# =========================================================
+# 2. Plot two shocks side by side
+# =========================================================
+par(mfrow = c(1, 2),family = "serif",mar = c(4, 4, 1, 1),cex = 0.8)
+draw_irf(h,plot.mat.FE.HOUSE,plot.mat.SPJ.HOUSE,ylab = "Household Debt")
+draw_irf(h,plot.mat.FE.NONFIN,plot.mat.SPJ.NONFIN,ylab = "Nonfinancial Firm Debt")
+```
+
+
+### 3.4. Currency crises: Cerra and Saxena (2008)
+We used the dataset from Cerra and Saxena (2008), which contains panel data on currency
+crises for 175 countries from 1965 to 2000. The dependent variable is the change in the logarithm of real GDP from year \(t-1\) to \(t+h\), and the main regressor is a dummy variable indicating a currency crisis. Control variables include four lags of the currency crisis dummies, as well as contemporaneous and up to four-year lagged real GDP growth. 
+
+#### 3.4.1 Manual
+* Users supply all pre-computed dependent variables across different horizons (`cf1GRRT_WB, cf2GRRT_WB, cf3GRRT_WB, cf4GRRT_WB, cf5GRRT_WB, cf6GRRT_WB, cf7GRRT_WB, cf8GRRT_WB, cf9GRRT_WB, cf10GRRT_WB`), the current shock variable \(x_t\) (`CRISIS`), and control variables, including lags of real GDP growth (`l1GRRT_WB, l2GRRT_WB, l3GRRT_WB, l4GRRT_WB`) and lags of \(x_t\) (`l1CRISIS, l2CRISIS, l3CRISIS, l4CRISIS`).
+* Set `H = 0`, `lagX = 0`, `lagY = 0`.
+* Run `panelLP()` separately for each horizon.
+
+##### Code
+
+```{r}
+# Load the dataset.
+data <- read.csv(system.file("extdata", "empirical_CS_f3.csv", package = "pLP"))
+
+# Define the shock variable.
+X.name = c("CRISIS")
+# Define the control variables.
+c.name = c("l1CRISIS","l2CRISIS",	"l3CRISIS",	"l4CRISIS", "l1GRRT_WB","l2GRRT_WB","l3GRRT_WB","l4GRRT_WB")
+# Define the outcome variables for each horizon.
+Y.names <- c("cf1GRRT_WB",	"cf2GRRT_WB",	"cf3GRRT_WB",	"cf4GRRT_WB",	"cf5GRRT_WB",	"cf6GRRT_WB",	"cf7GRRT_WB",	"cf8GRRT_WB",	"cf9GRRT_WB",	"cf10GRRT_WB")
+
+# Create empty matrices to store results for IRF and se.
+IRF.FE <- rbind(0,matrix(NA,length(Y.names),length(X.name)))
+se.FE <- rbind(0,matrix(NA,length(Y.names),length(X.name)))
+IRF.jackknife <- rbind(0,matrix(NA,length(Y.names),length(X.name)))
+se.jackknife <- rbind(0,matrix(NA,length(Y.names),length(X.name)))
+
+# Loop through each outcome variable (horizon).
+for (iname in 1:length(Y.names)){
+  Y.name <- Y.names[iname]
+
+  # Run FE estimation.
+  fit.FE<- panelLP(data,
+                   Y.name = Y.name,
+                   X.name = X.name,
+                   c.name = c.name,
+                   id.name = NULL,
+                   time.name = NULL,
+                   method = "FE",
+                   te = F,
+                   cumul = F,
+                   diff = F,
+                   g = 0,
+                   lagX = NULL,
+                   lagY = NULL,
+                   H=0)
+  # Store the FE results.
+  IRF.FE[iname+1,] <-  fit.FE$IRF
+  se.FE[iname+1,] <-  fit.FE$se
+  
+  # Run SPJ estimation.
+  fit.jackknife <- panelLP(data,
+                   Y.name = Y.name,
+                   X.name = X.name,
+                   c.name = c.name,
+                   id.name = NULL,
+                   time.name = NULL,
+                   method = "SPJ",
+                   te = F,
+                   cumul = F,
+                   diff = F,
+                   g = 0,
+                   lagX = NULL,
+                   lagY = NULL,
+                   H=0)
+  # Store the SPJ results.
+  IRF.jackknife[iname+1,] <-  fit.jackknife$IRF
+  se.jackknife[iname+1,] <-  fit.jackknife$se
+}
+
+```
+##### Impulse response and standard errors
+
+```{r}
+# Create results table
+results_CS <- data.frame(
+  horizon = 0:(nrow(IRF.FE)-1),
+  FE_IRF  = as.numeric(IRF.FE),
+  FE_se   = as.numeric(se.FE),
+  SPJ_IRF = as.numeric(IRF.jackknife),
+  SPJ_se  = as.numeric(se.jackknife)
+)
+
+# Output table
+kable(results_CS, digits = 4,
+      caption = "Impulse Responses and Standard Errors for Currency Crisis Regression")
+```
+
+##### Visualize
+
+```{r, fig.width=5, fig.height=3}
+# 1. Calculate 95% confidence intervals for FE and SPJ results.
+plot.mat.FE    <- prepare_plot_mat(IRF.FE, se.FE)
+plot.mat.FE[1,] <- 0 # No estimation required when h=0
+plot.mat.jackknife   <- prepare_plot_mat(IRF.jackknife, se.jackknife)
+plot.mat.jackknife[1,] <- 0 # No estimation required when h=0
+
+h <- 0:length(Y.names)   # horizon
+
+# =====================================================================
+# 2. Draw single IRF plot
+# =====================================================================
+par(family = "serif", mar = c(4,4,1,1), cex = 0.8)
+draw_irf(h, plot.mat.FE, plot.mat.jackknife)
+```
+
+#### 3.4.2 Automatic multi-horizon LPs
+* Users supply only current outcome (`GRRT_WB`), where `GRRT_WB` denotes the change in the logarithm of real GDP from year \(t-1\) to \(t\), and the current shock variables \(x_t\) (`CRISIS`). The `panelLP()` function then automatically constructs future outcomes \(y_{t+h}-y_{t-1}\) for all horizons (`cf1GRRT_WB, cf2GRRT_WB, cf3GRRT_WB, cf4GRRT_WB, cf5GRRT_WB, cf6GRRT_WB, cf7GRRT_WB, cf8GRRT_WB, cf9GRRT_WB, cf10GRRT_WB`), as well as lags of \(x_{t}\) up to `lagX` (`l1CRISIS, l2CRISIS, l3CRISIS, l4CRISIS`) , lags of `GRRT_WB` up to `lagY` (`l1GRRT_WB, l2GRRT_WB, l3GRRT_WB, l4GRRT_WB`). 
+* Set `H = 10`, `lagX = 4`, `lagY = 4`, `cumul = T`, `diff = T`, `g=1`. Here, we are also interested in the cumulative effect of the data, and `diff = T` with `g=1` indicates that the input data are first differences \(y_{t}-y_{t-1}\).
+* Run `panelLP()` once.
+
+
+##### Code
+
+```{r}
+# Load the dataset.
+data <- read.csv(system.file("extdata", "original_CS_f3.csv", package = "pLP"))
+
+# Define the shock variable.
+X.name = c("CRISIS")
+# Define the control variables.
+c.name = NULL
+# Define the outcome variables.
+Y.name <- c("GRRT_WB")
+H=10
+h.seq=1:10
+
+# Create empty matrices to store results for IRF and se.
+IRF.FE <- rbind(0,matrix(NA,length(h.seq),length(X.name)))
+se.FE <- rbind(0,matrix(NA,length(h.seq),length(X.name)))
+IRF.jackknife <- rbind(0,matrix(NA,length(h.seq),length(X.name)))
+se.jackknife <- rbind(0,matrix(NA,length(h.seq),length(X.name)))
+
+  # Run FE estimation.
+  fit.FE<- panelLP(data,
+                   Y.name = Y.name,
+                   X.name = X.name,
+                   c.name = c.name,
+                   id.name = NULL,
+                   time.name = NULL,
+                   method = "FE",
+                   te = F,
+                   cumul = T,
+                   diff = T,
+                   g = 1,
+                   lagX = 4,
+                   lagY = 4,
+                   H = 10)
+  # Store the FE results.
+  IRF.FE <-  fit.FE$IRF
+  se.FE <-  fit.FE$se
+  
+  # Run SPJ estimation.
+  fit.jackknife <- panelLP(data,
+                   Y.name = Y.name,
+                   X.name = X.name,
+                   c.name = c.name,
+                   id.name = NULL,
+                   time.name = NULL,
+                   method = "SPJ",
+                   te = F,
+                   cumul = T,
+                   diff = T,
+                   g = 1,
+                   lagX = 4,
+                   lagY = 4,
+                   H = 10)
+  # Store the SPJ results.
+  IRF.jackknife <-  fit.jackknife$IRF
+  se.jackknife <-  fit.jackknife$se
+```
+
+##### Impulse response and standard errors
+
+```{r}
+# Create results table
+results_CS <- data.frame(
+  horizon = 0:(nrow(IRF.FE)-1),
+  FE_IRF  = as.numeric(IRF.FE),
+  FE_se   = as.numeric(se.FE),
+  SPJ_IRF = as.numeric(IRF.jackknife),
+  SPJ_se  = as.numeric(se.jackknife)
+)
+# No estimation required when h=0
+results_CS[1, c("FE_IRF", "FE_se", "SPJ_IRF", "SPJ_se")] <- 0
+
+# Output table
+kable(results_CS, digits = 4,
+      caption = "Impulse Responses and Standard Errors for Currency Crisis Regression")
+```
+
+##### Visualize
+
+```{r, fig.width=5, fig.height=3}
+# 1. Calculate 95% confidence intervals for FE and SPJ results.
+
+plot.mat.FE    <- prepare_plot_mat(IRF.FE, se.FE)
+plot.mat.FE[1,] <- 0 # No estimation required when h=0
+plot.mat.jackknife   <- prepare_plot_mat(IRF.jackknife, se.jackknife)
+plot.mat.jackknife[1,] <- 0 # No estimation required when h=0
+
+h <- 0:H   # horizon
+
+# =====================================================================
+# 2. Draw single IRF plot
+# =====================================================================
+par(family = "serif", mar = c(4,4,1,1), cex = 0.8)
+draw_irf(h, plot.mat.FE, plot.mat.jackknife)
+```
+
+
+## 4. Conclusion
+
+Our package provides users with a flexible interface. Users can either manually supply all dependent variables and regressors, or provide only the current dependent variable and regressors, allowing the function to automatically compute the corresponding lags and future horizons. Additionally, users can adjust parameters to suit their data: `cumul` for cumulative versus level data, `diff` for first-differenced inputs, `g` for forward or backward differences, and `twc` or `dk` to account for cross-sectional correlations in panel data via two-way clustered or Driscoll–Kraay (1998) standard errors.
 
 

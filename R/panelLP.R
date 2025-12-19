@@ -9,11 +9,20 @@
 #' @param c.name    NULL (default) or Character. The control variables.
 #' @param id.name   NULL (default) or Character. The column to identify the cross sectional units. If NULL, the first column of
 #'                  the panel data set will be the variable denoting the cross section.
-#' @param time.name NULL (default) or Character. The column to identify the time periods. If NULL, the second column of the panel
-#'                  data set will be the variable denoting the time section.
+#' @param time.name NULL (default) or Character. The column to identify the time periods. If NULL, the second column of the panel data set will be the variable denoting the time section.
 #' @param method    Character. "SPJ" (default) or "FE". Type of method, either "SPJ" (split-panel jackknife, default) or "FE"
 #'                  (conventional within-group demeaned estimation).
 #' @param te        Boolean. FALSE (default) to exclude the time effect from the model.
+#' @param twc       Boolean. Default is FALSE. If TRUE, the two-way clustered standard error is calculated to address cross-sectional dependence in the panel data.
+#' @param dk        Boolean. Default is FALSE. If TRUE, the Driscoll and Kraay (1998) standard error is calculated to address cross-sectional dependence in the panel data.
+#' @param cumul     Boolean. FALSE (default) to use y_{t+h} only; TRUE to compute the cumulative effect y_{t+h} − y_{t−g}.
+#' @param diff     Boolean. Whether the input dependent variable is already in first differences.
+#'                 If FALSE (default), the input is assumed to be in levels y_t.
+#'                 If TRUE, the input is assumed to be differenced data d_t,  whose definition depends on the value of g.
+#' @param g        0 or 1. An integer determining how the differenced data d_t is defined when diff = TRUE.
+#'                 - g = 0: d_t = y_{t+1} − y_t  (forward difference)
+#'                 - g = 1: d_t = y_t − y_{t−1}  (backward difference)
+#'                 The cumulative effect is always computed as the sum of the corresponding differences over the appropriate horizon.
 #' @param lagX      NULL (default) or Integer. The number of lagged shock variables included as regressors. If NULL or 0, no
 #'                  lagged shock variables will be included.
 #' @param lagY      NULL (default) or Integer. The number of lagged dependent variables included as regressors. If NULL or 0, no
@@ -28,7 +37,7 @@
 #'
 #' @references
 #'
-#' Ziwei Mei, Liugang Sheng and Zhentao Shi (2025). "Nickell Bias in Panel Local Projection: Financial Crises Are Worse Than You Think", Journal of International Economics
+#' Ziwei Mei, Liugang Sheng and Zhentao Shi (2023). "Implicit Nickell Bias in Panel Local Projection"
 #'
 #'
 #' @export
@@ -133,10 +142,14 @@ panelLP = function(data,
                    time.name = NULL,
                    method = "SPJ",
                    te = F,
+                   cumul = F,
+                   diff = F,
+                   g = 0,
+                   twc = F,
+                   dk = F,
                    lagX = NULL,
                    lagY = NULL,
                    H ) {
-
 
   # Check NULL
   if(is.null(id.name)){
@@ -292,7 +305,9 @@ panelLP = function(data,
 
 
   #===Function to Compute the Variance of the Estimated Coefficients===
-  var_hat = function(N, T0, indep_var, res.vec, dd.mat=indep_var) {
+  var_hat = function(N, T0, indep_var, res.vec, dd.mat, twc) {
+    want_NT <- !( rowSums(is.na(indep_var))>0 | is.na(res.vec))
+    smp <- length(res.vec[want_NT,])
 
     W_N = matrix(0, ncol(indep_var), ncol(indep_var))
     res_N <- matrix(res.vec, ncol = N)
@@ -307,13 +322,87 @@ panelLP = function(data,
         W_N = W_N + t(dd_iN[want_iN,])%*%res_N[want_iN,iN]%*%t(res_N[want_iN,iN])%*%dd_iN[want_iN,]
       }
     }
+   
+    if (twc == F){
+        W = W_N
+    } else if (twc == T){
+        #transfer to N*T
+        dd.mat_NT = NULL 
+        for (iv in 1:ncol(dd.mat)){
+          dd.mat.iv.tnl <- dd.mat[,iv]
+          dd.mat.iv.nt <- t(matrix(dd.mat.iv.tnl, ncol = N))
+          dd.mat.iv <- matrix(dd.mat.iv.nt, nrow = length(res.vec) )
+          dd.mat_NT = cbind(dd.mat_NT,dd.mat.iv)
+        }
+        
+        W_T = matrix(0,ncol(indep_var),ncol(indep_var))
+        res_T <- t(matrix(res.vec,ncol = N))
+        for (iT in 1:T0){
+          dd_iT <- as.matrix(dd.mat_NT[(iT-1)*N+(1:N),])
+          want_iT <- !( rowSums(is.na(dd_iT)) > 0 | is.na(res_T[,iT]) )     
+          if (sum(want_iT) == 1){
+            temp_T <- as.matrix(dd_iT[want_iT,])%*%res_T[want_iT,iT]
+            W_T = W_T + temp_T %*% t(temp_T)
+          }else{
+            W_T = W_T + t(dd_iT[want_iT,])%*%res_T[want_iT,iT]%*%t(res_T[want_iT,iT])%*%dd_iT[want_iT,]
+          }
+        }
+        
+        W_NT = t(dd.mat[want_NT,]*res.vec[want_NT,])%*%(dd.mat[want_NT,]*res.vec[want_NT,])
+        W = W_N  + W_T  - W_NT
+    }
 
-    want_NT <- !( rowSums(is.na(indep_var))>0 | is.na(res.vec))
-    smp <- length(res.vec[want_NT,])
-    W = W_N * (N/(N-1)*(smp-1)/(smp-ncol(indep_var)))
+    W = W * (N/(N-1)*(smp-1)/(smp-ncol(indep_var)))
     temp <- t(indep_var[want_NT,])%*%indep_var[want_NT,]
 
-    var0_mat <- solve(temp) %*% W %*% solve(temp)
+    var_mat <- solve(temp) %*% W %*% solve(temp)
+      
+    return(var_mat)
+  }
+
+  #===Function to Compute the Variance Under Cross-Sectional Dependence===
+  dk_var = function(N, T0, indep_var, h, res.vec, dd.mat){
+      res_N <- matrix(res.vec,ncol = N)
+      T_h <- T0-h#length(res_N[!( rowSums(is.na(matrix(indep_var[,1],ncol = N)))>0 | is.na(res_N))])
+      m_h <- floor((T_h)^(1/4))
+
+      dd.mat_NT = NULL 
+      for (iv in 1:ncol(dd.mat)){
+          dd.mat.iv.tnl <- dd.mat[,iv]
+          dd.mat.iv.nt <- t(matrix(dd.mat.iv.tnl, ncol = N))
+          dd.mat.iv <- matrix(dd.mat.iv.nt, nrow = length(res.vec) )
+          dd.mat_NT = cbind(dd.mat_NT,dd.mat.iv)
+        }
+      
+      g_NT = matrix(0,T0,ncol(indep_var))
+      res_T <- t(matrix(res.vec,ncol = N))
+      for (t in 1:T0){
+          dd_iT <- as.matrix(dd.mat_NT[(t-1)*N+(1:N),])
+          want_iT <- !( rowSums(is.na(dd_iT)) > 0 | is.na(res_T[,t]) )
+          g_NT[t,] <- t(res_T[want_iT,t]) %*% dd_iT[want_iT,]/N
+      }
+      
+      S_NT <- t(g_NT) %*% g_NT/T_h
+      for (j in 1:m_h){
+          w_j <- 1-j/(m_h+1)
+          G1 <- g_NT[1:(T_h - j), , drop = FALSE]
+          G2 <- g_NT[(j + 1):T_h, , drop = FALSE]
+          delta_j <- t(G2) %*% G1/T_h
+          # delta_j <- matrix(0,ncol(indep_var),ncol(indep_var))
+          # for (t in (j+1):T_h){
+          #     gt <- g_NT[t,]
+          #     gtj <- g_NT[t-j,]
+          #     delta_j <- delta_j + gt %*% t(gtj)
+          # }
+          S_NT  = S_NT + w_j * (delta_j/T_h +t(delta_j/T_h))
+      }
+      want_NT <- !( rowSums(is.na(indep_var))>0 | is.na(res.vec))
+      smp <- length(res.vec[want_NT,])
+      S_NT = S_NT * (N/(N-1)*(smp-1)/(smp-ncol(indep_var)))
+      temp <- t(indep_var[want_NT,])%*%indep_var[want_NT,]
+
+      dk_mat <- solve(temp) %*% S_NT %*% solve(temp)
+      return(dk_mat * N * T_h)
   }
 
 
@@ -372,9 +461,107 @@ panelLP = function(data,
       # Return the leaded matrix
       return(lead_x)
     }
+      
+    #===Function to lead cumulative effect===
+    lead_matrix_cumul <- function(x, h, g = 0, diff = FALSE) {
+  if (!is.matrix(x)) x <- as.matrix(x)
+  Tn <- nrow(x)
+  Nc <- ncol(x)
+  out <- matrix(NA_real_, nrow = Tn, ncol = Nc)
 
+  if (!diff) {
+    # level data: y_{t+h} - y_{t-g}
+    for (i in seq_len(Nc)) {
+      col_i <- x[, i]
+      # y_{t+h}
+      if (h >= Tn) {
+        y_lead <- rep(NA_real_, Tn)
+      } else {
+        y_lead <- c(col_i[(1 + h):Tn], rep(NA_real_, h))
+      }
+      # y_{t-g}
+      if (g == 0) {
+        y_base <- col_i
+      } else if (g >= Tn) {
+        y_base <- rep(NA_real_, Tn)
+      } else {
+        y_base <- c(rep(NA_real_, g), col_i[1:(Tn - g)])
+      }
+      out[, i] <- y_lead - y_base
+    }
+    return(out)
+  } else {
+    # diff = TRUE : input is d_t defined by g
+    # mapping:
+    #  if g == 0: input d_t = y_{t+1}-y_t; output = sum_{j=0}^{h-1} d_{t+j}   (corresponds to y_{t+h} - y_t)
+    #  if g == 1: input d_t = y_{t}-y_{t-1}; output = sum_{j=0}^{h}   d_{t+j}   (corresponds to y_{t+h} - y_{t-1})
+    if (!(g %in% c(0,1))) stop("For diff=TRUE currently only g=0 or g=1 supported.")
+    for (i in seq_len(Nc)) {
+      col_i <- x[, i]
+      if (g == 0) {
+        # sum j=0..h-1
+        if (h == 0){return(structure(NULL,class = "skip_h0"))} #stop("For diff=TRUE and g=0, input d_t = y_{t+1}-y_t, thus h must be ≥ 1.")
+          for (t in 1:(Tn - (h - 1))) {
+            out[t, i] <- sum(col_i[t:(t + h - 1)], na.rm = FALSE)
+          }
+          if ((Tn - (h - 1) + 1) <= Tn) out[(Tn - (h - 1) + 1):Tn, i] <- NA_real_
+        }
+       else { # g == 1
+        # sum j=0..h
+        for (t in 1:(Tn - h)) {
+          out[t, i] <- sum(col_i[t:(t + h)], na.rm = FALSE)
+        }
+        if ((Tn - h + 1) <= Tn) out[(Tn - h + 1):Tn, i] <- NA_real_
+      }
+    }
+    return(out)
+  }
+}
+#     lead_matrix_cumul <- function(x, n, g = 0) {
+#   # input checks (optional)
+#   if (!is.matrix(x)) x <- as.matrix(x)
+#   Tn <- nrow(x)
+#   Nc <- ncol(x)
+
+#   # initialize result
+#   cumul_x <- matrix(NA, nrow = Tn, ncol = Nc)
+
+#   for (i in 1:Nc) {
+#     col_i <- x[, i]
+
+#     # compute y_{t+n} (lead)
+#     if (n >= Tn) {
+#       y_lead <- rep(NA, Tn)
+#     } else {
+#       y_lead <- c(col_i[(1 + n):Tn], rep(NA, n))
+#     }
+
+#     # compute y_{t-g} (base)
+#     if (g == 0) {
+#       y_base <- col_i
+#     } else if (g >= Tn) {
+#       y_base <- rep(NA, Tn)
+#     } else {
+#       y_base <- c(rep(NA, g), col_i[1:(Tn - g)])
+#     }
+
+#     # cumulative change y_{t+n} - y_{t-g}
+#     cumul_x[, i] <- y_lead - y_base
+#   }
+
+#   return(cumul_x)
+# }
     # Create leads for y
+    if (cumul == F){
     yfmat_t_n = lead_matrix(ymat_t_n, h)
+    }else if (cumul == T){
+    yfmat_t_n = lead_matrix_cumul(ymat_t_n, h, g, diff)
+        if (inherits(yfmat_t_n, "skip_h0")) {
+            IRF[ih, ] <- 0
+            se[ih, ]  <- 0
+            next
+        }
+    }
 
     # Create data for regression
     yf_tn <- matrix(yfmat_t_n, nrow=N*T0)
@@ -405,16 +592,20 @@ panelLP = function(data,
       if (h == 0){
         IRF[ih,] = fit_h$coefficients[1:px]
       }else{
-        IRF[ih,] = fit_h$coefficients[(1:px-1)*lagX + 1]
+        IRF[ih,] = fit_h$coefficients[1:px]#fit_h$coefficients[(1:px-1)*lagX + 1]
       }
 
       # function--var_hat
-      var.hat=var_hat(N, T0, indep_var, res.vec, dd.mat=indep_var)
+      if (dk == F){
+          var.hat = var_hat(N, T0, indep_var, res.vec, dd.mat=indep_var, twc)
+      }else{
+          var.hat = dk_var(N, T0, indep_var, h, res.vec, dd.mat=indep_var)
+      }
 
       if (h == 0){
         se[ih,] = sqrt(diag( as.matrix(var.hat) ))[1:px]
       }else{
-        se[ih,] = sqrt(diag( as.matrix(var.hat) ))[(1:px-1)*lagX + 1]
+        se[ih,] = sqrt(diag( as.matrix(var.hat) ))[1:px]#sqrt(diag( as.matrix(var.hat) ))[(1:px-1)*lagX + 1]
       }
 
 
@@ -481,7 +672,7 @@ panelLP = function(data,
       if (h == 0){
         IRF[ih,] = beta.hat[1:px]
       }else{
-        IRF[ih,] = beta.hat[(1:px-1)*lagX + 1]
+        IRF[ih,] = beta.hat[1:px]#beta.hat[(1:px-1)*lagX + 1]
       }
 
       ### S.E.
@@ -496,12 +687,16 @@ panelLP = function(data,
       dd.mat <- matrix(dd.mat, ncol = ncol(indep_var))
 
       # function--var_hat
-      var.hat=var_hat(N, T0, indep_var, res.vec, dd.mat=dd.mat)
+      if (dk == F){
+          var.hat = var_hat(N, T0, indep_var, res.vec, dd.mat=dd.mat, twc)
+      }else{
+          var.hat = dk_var(N, T0, indep_var, h, res.vec, dd.mat)
+      }
 
       if (h == 0){
         se[ih,] = sqrt( diag(var.hat ))[1:px]
       }else{
-        se[ih,] = sqrt( diag(var.hat ))[(1:px-1)*lagX + 1]
+        se[ih,] = sqrt( diag(var.hat ))[1:px]#sqrt( diag(var.hat ))[(1:px-1)*lagX + 1]
       }
 
 

@@ -13,6 +13,11 @@ panelLP(
   time.name = NULL,
   method = "SPJ",
   te = F,
+  cumul = F,
+  diff = F,
+  g = 0,
+  twc = F,
+  dk = F,
   lagX = NULL,
   lagY = NULL,
   H
@@ -30,13 +35,27 @@ panelLP(
 \item{id.name}{NULL (default) or Character. The column to identify the cross sectional units. If NULL, the first column of
 the panel data set will be the variable denoting the cross section.}
 
-\item{time.name}{NULL (default) or Character. The column to identify the time periods. If NULL, the second column of the panel
-data set will be the variable denoting the time section.}
+\item{time.name}{NULL (default) or Character. The column to identify the time periods. If NULL, the second column of the panel data set will be the variable denoting the time section.}
 
 \item{method}{Character. "SPJ" (default) or "FE". Type of method, either "SPJ" (split-panel jackknife, default) or "FE"
 (conventional within-group demeaned estimation).}
 
 \item{te}{Boolean. FALSE (default) to exclude the time effect from the model.}
+
+\item{cumul}{Boolean. FALSE (default) to use y_{t+h} only; TRUE to compute the cumulative effect y_{t+h} − y_{t−g}.}
+
+\item{diff}{Boolean. Whether the input dependent variable is already in first differences.
+If FALSE (default), the input is assumed to be in levels y_t.
+If TRUE, the input is assumed to be differenced data d_t,  whose definition depends on the value of g.}
+
+\item{g}{0 or 1. An integer determining how the differenced data d_t is defined when diff = TRUE.
+- g = 0: d_t = y_{t+1} − y_t  (forward difference)
+- g = 1: d_t = y_t − y_{t−1}  (backward difference)
+The cumulative effect is always computed as the sum of the corresponding differences over the appropriate horizon.}
+
+\item{twc}{Boolean. Default is FALSE. If TRUE, the two-way clustered standard error is calculated to address cross-sectional dependence in the panel data.}
+
+\item{dk}{Boolean. Default is FALSE. If TRUE, the Driscoll and Kraay (1998) standard error is calculated to address cross-sectional dependence in the panel data.}
 
 \item{lagX}{NULL (default) or Integer. The number of lagged shock variables included as regressors. If NULL or 0, no
 lagged shock variables will be included.}
