@@ -394,15 +394,15 @@ panelLP = function(data,
           #     gtj <- g_NT[t-j,]
           #     delta_j <- delta_j + gt %*% t(gtj)
           # }
-          S_NT  = S_NT + w_j * (delta_j/T_h +t(delta_j/T_h))
+          S_NT  = S_NT + w_j * (delta_j +t(delta_j))
       }
       want_NT <- !( rowSums(is.na(indep_var))>0 | is.na(res.vec))
       smp <- length(res.vec[want_NT,])
-      S_NT = S_NT * (N/(N-1)*(smp-1)/(smp-ncol(indep_var)))
       temp <- t(indep_var[want_NT,])%*%indep_var[want_NT,]
-
       dk_mat <- solve(temp) %*% S_NT %*% solve(temp)
-      return(dk_mat * N * T_h)
+      var_mat <- var_hat(N, T0, indep_var, res.vec, dd.mat, twc=F)
+      dk_mat <-dk_mat * N * T_h+var_mat
+      return(dk_mat)
   }
 
 
