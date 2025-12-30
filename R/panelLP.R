@@ -379,7 +379,7 @@ panelLP = function(data,
       for (t in 1:T0){
           dd_iT <- as.matrix(dd.mat_NT[(t-1)*N+(1:N),])
           want_iT <- !( rowSums(is.na(dd_iT)) > 0 | is.na(res_T[,t]) )
-          g_NT[t,] <- t(res_T[want_iT,t]) %*% dd_iT[want_iT,]/N
+          g_NT[t,] <- t(res_T[want_iT,t]) %*% dd_iT[want_iT,]/sqrt(N)
       }
       
       S_NT <- t(g_NT) %*% g_NT/T_h
@@ -388,20 +388,13 @@ panelLP = function(data,
           G1 <- g_NT[1:(T_h - j), , drop = FALSE]
           G2 <- g_NT[(j + 1):T_h, , drop = FALSE]
           delta_j <- t(G2) %*% G1/T_h
-          # delta_j <- matrix(0,ncol(indep_var),ncol(indep_var))
-          # for (t in (j+1):T_h){
-          #     gt <- g_NT[t,]
-          #     gtj <- g_NT[t-j,]
-          #     delta_j <- delta_j + gt %*% t(gtj)
-          # }
           S_NT  = S_NT + w_j * (delta_j +t(delta_j))
       }
       want_NT <- !( rowSums(is.na(indep_var))>0 | is.na(res.vec))
       smp <- length(res.vec[want_NT,])
       temp <- t(indep_var[want_NT,])%*%indep_var[want_NT,]
       dk_mat <- solve(temp) %*% S_NT %*% solve(temp)
-      var_mat <- var_hat(N, T0, indep_var, res.vec, dd.mat, twc=F)
-      dk_mat <-dk_mat * N * T_h+var_mat
+      dk_mat <-dk_mat * N * T_h
       return(dk_mat)
   }
 
