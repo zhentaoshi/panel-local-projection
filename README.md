@@ -3,7 +3,7 @@
 
 This repository hosts an R package that accompanies
 
-* Ziwei Mei, Liugang Sheng, Zhentao Shi (2025), "[Nickell Bias in Panel Local Projection: Financial Crises Are Worse Than You Think](https://arxiv.org/abs/2302.13455)",  *Journal of International Economics*. _arxiv:2302.13455_.
+* Ziwei Mei, Liugang Sheng, Zhentao Shi (2026), "[Nickell Bias in Panel Local Projection: Financial Crises Are Worse Than You Think](https://www.sciencedirect.com/science/article/abs/pii/S0022199625001679)",  *Journal of International Economics*, 104210.
 
 This package offers an `R` function to implement the panel local projection that includes two methods: 
 
