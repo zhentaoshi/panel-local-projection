@@ -168,5 +168,5 @@ print(results.SPJ)
 
 }
 \references{
-Ziwei Mei, Liugang Sheng and Zhentao Shi (2023). "Implicit Nickell Bias in Panel Local Projection"
+Ziwei Mei, Liugang Sheng and Zhentao Shi (2026). \href{https://www.sciencedirect.com/science/article/abs/pii/S0022199625001679}{Nickell Bias in Panel Local Projection: Financial Crises Are Worse Than You Think}. \emph{Journal of International Economics}, 104210.
 }
