@@ -17,6 +17,12 @@ library("pLP")
 example(panelLP) # test installation
 ```
 
+## External packages
+
+* [Stata package](https://github.com/shenshuuu/panel-local-projection-stata) hosts the Stata commands for panel local projections with split-panel jackknife (SPJ) estimator.
+
+* [Python package](https://github.com/zhentaoshi/panel-local-projection-py) is a replica of the R package.
+
 
 ### Contributors 
 
